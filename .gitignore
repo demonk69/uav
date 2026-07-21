@@ -1,0 +1,20 @@
+# auto-generated Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# pytest cache
+.pytest_cache/
+
+# Isaac Lab outputs
+logs/
+outputs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

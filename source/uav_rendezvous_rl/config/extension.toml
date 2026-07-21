@@ -1,0 +1,13 @@
+[package]
+version = "0.1.0"
+category = "Simulation"
+title = "UAV Rendezvous RL"
+description = "External Isaac Lab project for a staged UAV rendezvous RL task."
+authors = ["lab_726"]
+repository = ""
+keywords = ["isaaclab", "reinforcement-learning", "uav"]
+
+[dependencies]
+"isaaclab" = {}
+"isaaclab_tasks" = {}
+"isaaclab_rl" = {}
