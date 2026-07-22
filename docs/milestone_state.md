@@ -1,87 +1,78 @@
 # Milestone State
 
-Current milestone: M3
-Status: accepted
+Current milestone: M4
+Status: completed_pending_user_acceptance
 Last completed milestone: M3
-M3 acceptance commit: 17e05e8ebed2bbc100dc2eef9d8b0fe4486846c5
-Next milestone: M4, authorized but not started
+M3 implementation commit: 17e05e8ebed2bbc100dc2eef9d8b0fe4486846c5
+M3 accepted tag commit: 605325a9142aa534d20b2d52ea6533cf598c2c12
+Next milestone: M5, not authorized
 
 ## Authorized Work
 
-- 通用TargetMotionGenerator接口
-- ConstantVelocity
-- ConstantAcceleration
-- ConstantTurn
-- PiecewiseAcceleration
-- 每环境独立参数
-- 固定seed复现
-- train/validation/test参数分离
-- M3实际环境运行审计
-- 继续使用M2的简化占位实体
+- 确定性非学习偏置交会基线
+- 目标当前状态的短期匀速外推
+- 简化ego速度和加速度受限动力学
+- 独立Baseline任务
+- 偏置误差、相对速度、安全性和成功率统计
+- ConstantVelocity正式验收
+- 其他运动模式压力测试
 
-## Forbidden In M3
+## Forbidden In M4
 
-- ego交会控制器
-- 确定性基线
-- v_cmd_w动作控制
-- 奖励函数
 - PPO训练
-- GRU或LSTM
-- 非对称Actor-Critic
+- GRU/LSTM
+- Actor/Critic网络
+- RL奖励训练
 - B样条轨迹
 - Crazyflie
 - Multirotor/Thruster
 - Pegasus
 - PX4
 - ROS 2
-- 相机或第一阶段感知网络
+- 感知网络
+- 读取目标模式标签
+- 读取运动生成参数
+- 读取目标未来状态或未来schedule
 
 ## Notes
 
-- M2 accepted by user; acceptance commit is `34709da0c07c60f1aa8e1bf34ecf476992d54e46`.
-- Local `review/m2` was fast-forward merged into `main`; annotated tag `m2-accepted` was created at the M2 acceptance commit.
-- Remote `main` and tag `m2-accepted` were pushed before starting M3 work.
-- M3 accepted by user; acceptance commit is `17e05e8ebed2bbc100dc2eef9d8b0fe4486846c5`.
-- M4 is authorized but not started. This document update does not implement M4 functionality.
+- M2 accepted by user; acceptance tag is `m2-accepted`.
+- M3 accepted by user; acceptance tag is `m3-accepted` at commit `605325a9142aa534d20b2d52ea6533cf598c2c12`.
+- M4 starts from `m3-accepted` on branch `feature/m4`.
+- The original `Isaac-Uav-Rendezvous-Direct-v0` task must remain an M2/M3 regression task with stationary ego and no-op action.
+- M5 is not authorized.
+- M4 is implemented locally and awaits user technical acceptance.
 
-## M3 Implementation Summary
+## M4 Implementation Summary
 
-- Added vectorized `uav_rendezvous_rl.motions` target motion library.
-- Implemented common `TargetMotionGenerator` protocol and `MotionState` state container.
-- Implemented `ConstantVelocity`, `ConstantAcceleration`, `ConstantTurn`, and `PiecewiseAcceleration` generators.
-- Added `TargetMotionManager` with per-env mixed modes, seeded reset, partial reset, split-aware sampling, validity checks, and diagnostics.
-- Integrated M3 target motion manager into the DirectRLEnv while keeping Actor observations limited to `[p_rel_w, v_rel_w]`.
-- Kept M2 constant-velocity helper as a compatibility wrapper over the M3 constant-velocity formula.
-- Updated M2 runtime audit to force ConstantVelocity so M2 regression remains analytically checkable under M3 defaults.
-- Added `scripts/audit_m3_motion_runtime.py` for runtime validation of all M3 motion modes, independent analytic references, Actor isolation, task tensor truth authority, asset sync, seed/split reproducibility, partial reset, no contact, and finite state.
+- Added pure PyTorch deterministic baseline controller utilities under `uav_rendezvous_rl.controllers`.
+- Implemented current-state ConstantVelocity target extrapolation: `p_target_pred_w = p_target_w + v_target_w * T_pred`.
+- Implemented offset goal command: `p_goal_w = p_target_pred_w + b_des_w` and `v_cmd_w = (p_goal_w - p_ego_w) / T_pred`.
+- Implemented acceleration-limited ego kinematics with vector-norm velocity, acceleration, and absolute speed limits.
+- Added independent `Isaac-Uav-Rendezvous-Baseline-v0` task without modifying the original Direct task behavior.
+- Added M4 reset geometry that samples `p_ego_initial_w = p_target_initial_w + b_des_w + delta_initial_w` with a non-contact path to the offset point.
+- Added M4 episode metrics and diagnostics for offset error, relative speed, success hold, collision risk, workspace, speed limit, finite state, saturation, and asset sync.
+- Added `scripts/audit_m4_baseline_runtime.py` for nominal fixed ConstantVelocity, random ConstantVelocity, and stress-mode runtime audits.
+- Added unit tests for prediction, control law, limits, kinematics, initial geometry, causality, and ConstantVelocity convergence.
 
-## M3 Verification
+## M4 Verification
 
-- Syntax check: `syntax ok: 38 files`.
-- Pytest: `27 passed in 0.83s`.
+- Syntax check passed: `env -u PYTHONPATH -u PYTHONHOME -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u VIRTUAL_ENV /home/lab_726/IsaacLab/isaaclab.sh -p -m compileall -q scripts source tests`.
+- Pytest passed: `41 passed in 0.97s`.
+- Small M4 smoke passed: `scripts/audit_m4_baseline_runtime.py --num_envs 8 --episodes 1 --seed 42 --split train --device cuda:0 --headless`.
 - M2 regression runtime audit passed: `scripts/audit_m2_runtime.py --num_envs 16 --steps 1000 --seed 42 --device cuda:0 --headless`.
-- M3 runtime audit passed: `scripts/audit_m3_motion_runtime.py --num_envs 16 --steps 5000 --seed 42 --split train --device cuda:0 --headless`.
-- M3 audit mode coverage: ConstantVelocity 4, ConstantAcceleration 4, ConstantTurn 4, PiecewiseAcceleration 4.
-- M3 independent analytic overall max errors: position 3.5762786865234375e-06, velocity 2.9802322387695312e-08, acceleration 9.02347911668766e-10.
-- M3 audit safety: all-physics-substep minimum relative distance 4.436470985412598 m, `d_safe` 0.75 m, no collision risk.
-- M3 audit validity: finite truth state, no invalid target motion, no ego drift, asset sync within tolerance.
-- M3 audit max target speed observed: 1.7801588773727417 m/s.
-- M3 audit max target acceleration observed: 0.03640248253941536 m/s^2.
-- M3 audit workspace max absolute coordinate observed: 93.41694641113281 m.
-- M3 audit PiecewiseAcceleration segment switches: total 562, per PiecewiseAcceleration env [136, 136, 143, 147], every PiecewiseAcceleration env switched at least once.
-- M3 seed/split digest audit:
-- train seed 42 process A digest `9a8feaf028dda96abe174630ec00d78b50eb565ba0b54febb07cb965b06609e7`.
-- train seed 42 process B digest `9a8feaf028dda96abe174630ec00d78b50eb565ba0b54febb07cb965b06609e7`.
-- train seed 43 digest `17f36606ab398a1ebef2e3f14f088a634501615300b06f6c146415cc08630da9`.
-- validation seed 42 digest `ed8c437ab2ce3d97f05ade72086c0e15687f3d79aa22aa7f88b50eb4984c15f2`.
-- test seed 42 digest `cd8d9b9f47d6d05d63fd9280b5ce8fb717fdbf4d51cc813118cc3beede8feadf`.
-- M3 split config ranges are distinct across train, validation, and test, with unique seed offsets.
-- M3 Actor observation check: only `policy` group, shape `[16, 6]`, exactly `[p_rel_w, v_rel_w]`, no mode id, motion parameters, future schedule, or future target state.
-- Zero-agent 10000-step smoke passed on `cuda:0` headless.
-- Random-agent 10000-step smoke passed on `cuda:0` headless.
+- M3 regression runtime audit passed: `scripts/audit_m3_motion_runtime.py --num_envs 16 --steps 5000 --seed 42 --split train --device cuda:0 --headless`.
+- Formal M4 baseline audit passed: `scripts/audit_m4_baseline_runtime.py --num_envs 64 --episodes 5 --seed 42 --split train --device cuda:0 --headless`.
+- M4 nominal fixed ConstantVelocity: success rate `1.0`, collision count `0`, success offset error p95 `7.62939453125e-06`, success relative speed p95 `8.58306884765625e-06`.
+- M4 random ConstantVelocity: success rate `1.0`, collision count `0`, success offset error p95 `4.206398443784565e-05`, success relative speed p95 `8.18166954559274e-05`.
+- M4 stress ConstantAcceleration: success rate `1.0`, collision count `0`, success offset error p95 `0.0022186809219419956`, success relative speed p95 `7.15116475475952e-05`.
+- M4 stress ConstantTurn: success rate `1.0`, collision count `0`, success offset error p95 `0.009585591964423656`, success relative speed p95 `0.0008776930626481771`.
+- M4 stress PiecewiseAcceleration: success rate `1.0`, collision count `0`, success offset error p95 `0.00256736995652318`, success relative speed p95 `0.004727173130959272`.
+- Direct zero-agent 10000-step smoke passed on `Isaac-Uav-Rendezvous-Direct-v0`.
+- Direct random-agent 10000-step smoke passed on `Isaac-Uav-Rendezvous-Direct-v0`.
 
 ## Current Review State
 
-- Branch: `feature/m3`.
-- Review branch target: `review/m3`.
-- M3 documentation archival is in progress before tagging `m3-accepted` and creating `feature/m4`.
+- Branch: `feature/m4`.
+- Review branch target: `review/m4`.
+- Commit message: `M4: add deterministic offset rendezvous baseline`.

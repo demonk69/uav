@@ -15,3 +15,9 @@ Do not retry `kinematic_enabled=True` during M2 closure. Do not modify Isaac Lab
 `TargetMotionManager` currently has several high-frequency CUDA-path calls such as `torch.any(...).item()` and `count_nonzero(...).item()`. These can cause CPU-GPU synchronization. M3 functionality is correct and accepted, but before M5 large-scale parallel training this path must be profiled and non-essential synchronization should be reduced.
 
 Do not refactor the manager as part of M3 acceptance archival work.
+
+## M4 Baseline Scope Limitation
+
+M4 uses exact target truth, simplified ego dynamics, and current-state short-horizon extrapolation. The low audited errors for ConstantVelocity targets show that the deterministic offset rendezvous baseline and task plumbing are correct under these assumptions.
+
+These M4 results do not represent final policy performance under perception noise, observation delay, external disturbances, aggressive or complex target maneuvers, or real multirotor dynamics. Those conditions remain outside M4 and must not be inferred from the deterministic baseline audit.

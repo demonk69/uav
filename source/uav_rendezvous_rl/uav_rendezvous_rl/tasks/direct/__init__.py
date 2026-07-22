@@ -1,4 +1,4 @@
-"""Direct workflow task registration for M2."""
+"""Direct workflow task registrations."""
 
 import gymnasium as gym
 
@@ -11,6 +11,16 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.uav_rendezvous_env_cfg:UavRendezvousEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:UavRendezvousPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="Isaac-Uav-Rendezvous-Baseline-v0",
+    entry_point=f"{__name__}.uav_rendezvous_baseline_env:UavRendezvousBaselineEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.uav_rendezvous_baseline_env_cfg:UavRendezvousBaselineEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:UavRendezvousPPORunnerCfg",
     },
 )
