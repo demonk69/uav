@@ -1,4 +1,4 @@
-"""Configuration for the M2 dual-placeholder DirectRLEnv task."""
+"""Configuration for the M3 dual-placeholder DirectRLEnv task."""
 
 from __future__ import annotations
 
@@ -11,14 +11,16 @@ from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sim import SimulationCfg
 from isaaclab.utils import configclass
+from uav_rendezvous_rl.motions import TargetMotionManagerCfg
 
 
 @configclass
 class UavRendezvousEnvCfg(DirectRLEnvCfg):
-    """M2 environment config.
+    """M3 environment config.
 
-    The 6D observation `[p_rel_w, v_rel_w]` is only the M2 acceptance
-    interface. It is not the final M5 Actor observation definition.
+    The 6D observation `[p_rel_w, v_rel_w]` remains the M3 acceptance
+    interface. It intentionally excludes target motion mode, generator
+    parameters, future schedule, and future target states.
     """
 
     # env
@@ -52,16 +54,21 @@ class UavRendezvousEnvCfg(DirectRLEnvCfg):
         clone_in_fabric=True,
     )
 
-    # M2 placeholder entity geometry and safety values [m]
+    # M2/M3 placeholder entity geometry and safety values [m]
     r_ego = 0.20
     r_target = 0.20
     safety_margin = 0.35
     d_safe = 0.75
 
-    # M2 deterministic ego state in env-local world frame w [m, m/s]
+    # M3 target motion manager. Split selection is internal and not exposed to Actor observations.
+    target_motion_split = "train"
+    target_motion: TargetMotionManagerCfg = TargetMotionManagerCfg(d_safe=d_safe)
+
+    # M2/M3 deterministic ego state in env-local world frame w [m, m/s]
     ego_initial_pos_w = (0.0, 0.0, 1.5)
 
-    # M2 target reset randomization ranges in env-local world frame w [m, m/s]
+    # M2 compatibility target reset randomization ranges in env-local world frame w [m, m/s].
+    # M3 environment reset samples through `target_motion` split configs instead.
     target_pos_x_range = (4.0, 8.0)
     target_pos_y_range = (-2.0, 2.0)
     target_height_range = (1.5, 1.5)

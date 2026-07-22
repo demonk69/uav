@@ -1,11 +1,11 @@
-"""M2 dual-placeholder DirectRLEnv task.
+"""M3 dual-placeholder DirectRLEnv task.
 
-The environment task tensors are the single source of truth for M2. The ego and
+The environment task tensors are the single source of truth for M3. The ego and
 target RigidObjects are synchronized carriers for state inspection and
-visualization. The task intentionally implements only the M2 scope: a stationary
-ego placeholder and a fixed-height, constant-velocity target placeholder. It
-does not implement M3 target motion generators, baselines, PPO, recurrent
-policies, asymmetric actor-critic, or high-fidelity multirotor dynamics.
+visualization. The task intentionally implements only the M3 scope: a stationary
+ego placeholder and a vectorized target motion manager. It does not implement
+M4 baselines, PPO, recurrent policies, asymmetric actor-critic, or high-fidelity
+multirotor dynamics.
 """
 
 from __future__ import annotations
@@ -19,26 +19,23 @@ from isaaclab.assets import RigidObject
 from isaaclab.envs import DirectRLEnv
 from isaaclab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 
-from .m2_kinematics import (
-    M2RandomizationCfg,
-    all_finite,
-    compute_constant_velocity_position_w,
-    compute_offset_error_w,
-    compute_relative_state_w,
-    sample_m2_initial_conditions,
-)
+from uav_rendezvous_rl.motions import TargetMotionManager
+from uav_rendezvous_rl.motions.configs import get_split_cfg
+from uav_rendezvous_rl.motions.sampling import make_split_generator, sample_initial_target_state
+
+from .m2_kinematics import all_finite, compute_offset_error_w, compute_relative_state_w
 from .uav_rendezvous_env_cfg import UavRendezvousEnvCfg
 
 
 class UavRendezvousEnv(DirectRLEnv):
-    """Vectorized DirectRLEnv for M2 truth-state smoke tests."""
+    """Vectorized DirectRLEnv for M3 truth-state motion tests."""
 
     cfg: UavRendezvousEnvCfg
 
     def __init__(self, cfg: UavRendezvousEnvCfg, render_mode: str | None = None, **kwargs):
-        self._rng = torch.Generator(device="cpu")
-        self._seed_value = int(cfg.seed if cfg.seed is not None else 0)
-        self._rng.manual_seed(self._seed_value)
+        self._base_seed_value = int(cfg.seed if cfg.seed is not None else 0)
+        self._seed_value = self._base_seed_value
+        self._rng = make_split_generator(self._base_seed_value, cfg.target_motion, cfg.target_motion_split)
         super().__init__(cfg, render_mode, **kwargs)
 
         self._all_env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
@@ -47,14 +44,8 @@ class UavRendezvousEnv(DirectRLEnv):
             self.num_envs, 1
         )
         self._zero_ang_vel_w = torch.zeros((self.num_envs, 3), dtype=torch.float32, device=self.device)
-        self._m2_randomization_cfg = M2RandomizationCfg(
-            ego_initial_pos_w=self.cfg.ego_initial_pos_w,
-            target_pos_x_range=self.cfg.target_pos_x_range,
-            target_pos_y_range=self.cfg.target_pos_y_range,
-            target_height_range=self.cfg.target_height_range,
-            target_vel_x_range=self.cfg.target_vel_x_range,
-            target_vel_y_range=self.cfg.target_vel_y_range,
-            d_safe=self.cfg.d_safe,
+        self.target_motion_manager = TargetMotionManager(
+            self.num_envs, self.cfg.target_motion, self.physics_dt, self.device
         )
 
         self.p_ego_w = torch.zeros((self.num_envs, 3), dtype=torch.float32, device=self.device)
@@ -62,15 +53,28 @@ class UavRendezvousEnv(DirectRLEnv):
         self.p_target_initial_w = torch.zeros_like(self.p_ego_w)
         self.p_target_w = torch.zeros_like(self.p_ego_w)
         self.v_target_w = torch.zeros_like(self.p_ego_w)
+        self.a_target_w = torch.zeros_like(self.p_ego_w)
         self.p_rel_w = torch.zeros_like(self.p_ego_w)
         self.v_rel_w = torch.zeros_like(self.p_ego_w)
         self.b_des_w = torch.tensor(self.cfg.b_des_w, dtype=torch.float32, device=self.device).repeat(self.num_envs, 1)
         self._ego_initial_pos_w = torch.tensor(self.cfg.ego_initial_pos_w, dtype=torch.float32, device=self.device)
         self.e_offset_w = torch.zeros_like(self.p_ego_w)
+        self.motion_step_count = self.target_motion_manager.motion_step_count
         self.target_elapsed_time = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.reset_counts = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+        self.target_motion_invalid_buf = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        self.collision_risk_buf = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        self.min_relative_distance_per_episode = torch.full(
+            (self.num_envs,), float("inf"), dtype=torch.float32, device=self.device
+        )
+        self._min_relative_distance_observed = torch.full(
+            (self.num_envs,), float("inf"), dtype=torch.float32, device=self.device
+        )
         self._target_displacement_max_observed = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self._ego_displacement_max_observed = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self._workspace_abs_max_observed = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self._target_speed_max_observed = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self._target_acceleration_max_observed = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
 
     def _setup_scene(self) -> None:
         self.ego = RigidObject(self.cfg.ego_cfg)
@@ -87,7 +91,10 @@ class UavRendezvousEnv(DirectRLEnv):
     def seed(self, seed: int = -1) -> int:
         resolved_seed = super().seed(seed)
         if hasattr(self, "_rng"):
-            self._rng.manual_seed(resolved_seed)
+            self._base_seed_value = int(resolved_seed)
+            self._rng = make_split_generator(
+                self._base_seed_value, self.cfg.target_motion, self.cfg.target_motion_split
+            )
             self._seed_value = int(resolved_seed)
         return resolved_seed
 
@@ -95,17 +102,19 @@ class UavRendezvousEnv(DirectRLEnv):
         self._actions = torch.clamp(actions, -1.0, 1.0)
 
     def _apply_action(self) -> None:
-        # Actions are intentionally a no-op in M2. Target motion is analytic to avoid integration drift.
-        self.target_elapsed_time += self.physics_dt
-        self.p_target_w[:] = compute_constant_velocity_position_w(
-            self.p_target_initial_w, self.v_target_w, self.target_elapsed_time
-        )
+        # Actions are intentionally a no-op in M3. Target truth comes only from the motion manager.
+        target_state = self.target_motion_manager.step()
+        self.p_target_w[:] = target_state.p_target_w
+        self.v_target_w[:] = target_state.v_target_w
+        self.a_target_w[:] = target_state.a_target_w
+        self.target_elapsed_time[:] = self.motion_step_count.to(dtype=torch.float32) * self.physics_dt
         self._refresh_relative_state()
+        self._update_safety_diagnostics()
         self._update_motion_diagnostics()
         self._write_entities_to_sim(self._all_env_ids)
 
     def _get_observations(self) -> dict[str, torch.Tensor]:
-        # M2 acceptance observation only: this is not the final M5 Actor observation definition.
+        # M3 acceptance observation only: no mode ids, generator parameters, schedules, or future states.
         self._write_entities_to_sim(self._all_env_ids)
         obs = torch.cat((self.p_rel_w, self.v_rel_w), dim=-1)
         return {"policy": obs}
@@ -115,35 +124,48 @@ class UavRendezvousEnv(DirectRLEnv):
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
         state_tensors = torch.cat(
-            (self.p_ego_w, self.v_ego_w, self.p_target_w, self.v_target_w, self.p_rel_w, self.v_rel_w), dim=-1
+            (self.p_ego_w, self.v_ego_w, self.p_target_w, self.v_target_w, self.a_target_w, self.p_rel_w, self.v_rel_w),
+            dim=-1,
         )
         non_finite = torch.any(~torch.isfinite(state_tensors), dim=1)
-        collision_risk = torch.linalg.norm(self.p_rel_w, dim=1) < self.cfg.d_safe
         time_out = self.episode_length_buf >= self.max_episode_length - 1
-        return non_finite | collision_risk, time_out
+        return non_finite | self.collision_risk_buf | self.target_motion_invalid_buf, time_out
 
     def _reset_idx(self, env_ids: Sequence[int] | torch.Tensor | None) -> None:
         env_ids = self._resolve_env_ids(env_ids)
         super()._reset_idx(env_ids)
 
         num_reset = int(env_ids.numel())
-        p_ego_w, v_ego_w, p_target_initial_w, v_target_w = sample_m2_initial_conditions(
-            num_reset,
-            self._m2_randomization_cfg,
-            self._rng,
-            self.device,
+        p_ego_w = self._ego_initial_pos_w.repeat(num_reset, 1)
+        v_ego_w = torch.zeros((num_reset, 3), dtype=torch.float32, device=self.device)
+        split_cfg = get_split_cfg(self.cfg.target_motion, self.cfg.target_motion_split)
+        p_target_initial_w, v_target_initial_w = sample_initial_target_state(
+            num_reset, p_ego_w, self.cfg.target_motion, split_cfg, self._rng, self.device
+        )
+        target_state = self.target_motion_manager.reset(
+            env_ids, p_target_initial_w, v_target_initial_w, self._rng, self.cfg.target_motion_split
         )
 
         self._actions[env_ids] = 0.0
         self.p_ego_w[env_ids] = p_ego_w
         self.v_ego_w[env_ids] = v_ego_w
         self.p_target_initial_w[env_ids] = p_target_initial_w
-        self.p_target_w[env_ids] = p_target_initial_w
-        self.v_target_w[env_ids] = v_target_w
+        self.p_target_w[env_ids] = target_state.p_target_w[env_ids]
+        self.v_target_w[env_ids] = target_state.v_target_w[env_ids]
+        self.a_target_w[env_ids] = target_state.a_target_w[env_ids]
         self.target_elapsed_time[env_ids] = 0.0
+        self.target_motion_invalid_buf[env_ids] = self.target_motion_manager.invalid_mask[env_ids]
+        self.collision_risk_buf[env_ids] = False
+        self.min_relative_distance_per_episode[env_ids] = float("inf")
+        self._workspace_abs_max_observed[env_ids] = torch.maximum(
+            torch.abs(self.p_ego_w[env_ids]).amax(dim=1), torch.abs(self.p_target_w[env_ids]).amax(dim=1)
+        )
+        self._target_speed_max_observed[env_ids] = torch.linalg.norm(self.v_target_w[env_ids], dim=1)
+        self._target_acceleration_max_observed[env_ids] = torch.linalg.norm(self.a_target_w[env_ids], dim=1)
         self.reset_counts[env_ids] += 1
 
         self._refresh_relative_state()
+        self._update_safety_diagnostics(env_ids)
         self._write_entities_to_sim(env_ids)
 
     def _resolve_env_ids(self, env_ids: Sequence[int] | torch.Tensor | None) -> torch.Tensor:
@@ -182,6 +204,27 @@ class UavRendezvousEnv(DirectRLEnv):
             self._target_displacement_max_observed, target_displacement
         )
         self._ego_displacement_max_observed[:] = torch.maximum(self._ego_displacement_max_observed, ego_displacement)
+        workspace_abs = torch.maximum(torch.abs(self.p_ego_w).amax(dim=1), torch.abs(self.p_target_w).amax(dim=1))
+        self._workspace_abs_max_observed[:] = torch.maximum(self._workspace_abs_max_observed, workspace_abs)
+        self._target_speed_max_observed[:] = torch.maximum(
+            self._target_speed_max_observed, torch.linalg.norm(self.v_target_w, dim=1)
+        )
+        self._target_acceleration_max_observed[:] = torch.maximum(
+            self._target_acceleration_max_observed, torch.linalg.norm(self.a_target_w, dim=1)
+        )
+
+    def _update_safety_diagnostics(self, env_ids: torch.Tensor | None = None) -> None:
+        if env_ids is None:
+            env_ids = self._all_env_ids
+        relative_distance = torch.linalg.norm(self.p_rel_w[env_ids], dim=1)
+        self.min_relative_distance_per_episode[env_ids] = torch.minimum(
+            self.min_relative_distance_per_episode[env_ids], relative_distance
+        )
+        self._min_relative_distance_observed[env_ids] = torch.minimum(
+            self._min_relative_distance_observed[env_ids], relative_distance
+        )
+        self.collision_risk_buf[env_ids] |= relative_distance < self.cfg.d_safe
+        self.target_motion_invalid_buf[env_ids] |= self.target_motion_manager.invalid_mask[env_ids]
 
     def get_m2_diagnostics(self) -> dict[str, object]:
         """Return M2 smoke-test diagnostics with CPU scalar/list values."""
@@ -193,6 +236,7 @@ class UavRendezvousEnv(DirectRLEnv):
             self.v_ego_w,
             self.p_target_w,
             self.v_target_w,
+            self.a_target_w,
             self.p_rel_w,
             self.v_rel_w,
             self.e_offset_w,
@@ -215,4 +259,39 @@ class UavRendezvousEnv(DirectRLEnv):
             "ego_displacement_max_observed": max_ego_motion,
             "target_moved": max_target_motion > 1.0e-6,
             "ego_static": max_ego_motion <= self.cfg.ego_static_tolerance,
+        }
+
+    def get_m3_diagnostics(self) -> dict[str, object]:
+        """Return M3 runtime diagnostics without exposing them to Actor observations."""
+
+        state = self.target_motion_manager.evaluate()
+        return {
+            "split": self.cfg.target_motion_split,
+            "seed": int(self._seed_value),
+            "num_envs": int(self.num_envs),
+            "total_steps": int(self.common_step_counter),
+            "sim_dt": float(self.physics_dt),
+            "decimation": int(self.cfg.decimation),
+            "step_dt": float(self.step_dt),
+            "mode_counts": self.target_motion_manager.mode_counts(),
+            "max_speed": self.target_motion_manager.max_speed(state),
+            "max_acceleration": self.target_motion_manager.max_acceleration(state),
+            "max_speed_observed": float(self._target_speed_max_observed.max().item()),
+            "max_acceleration_observed": float(self._target_acceleration_max_observed.max().item()),
+            "min_relative_distance": float(self._min_relative_distance_observed.min().item()),
+            "workspace_abs_max": float(self._workspace_abs_max_observed.max().item()),
+            "target_motion_invalid": bool(self.target_motion_invalid_buf.any().item()),
+            "collision_risk": bool(self.collision_risk_buf.any().item()),
+            "finite_check": all_finite(
+                self.p_ego_w,
+                self.v_ego_w,
+                self.p_target_w,
+                self.v_target_w,
+                self.a_target_w,
+                self.p_rel_w,
+                self.v_rel_w,
+                self.e_offset_w,
+            ),
+            "segment_switch_count": self.target_motion_manager.segment_switch_count.detach().cpu().tolist(),
+            "mode_id": self.target_motion_manager.mode_id.detach().cpu().tolist(),
         }

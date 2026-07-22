@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 import hashlib
 import json
 from typing import Any
@@ -62,6 +63,17 @@ def _make_env(args_cli: argparse.Namespace, seed: int, steps: int | None = None)
         use_fabric=not args_cli.disable_fabric,
     )
     env_cfg.seed = seed
+    if hasattr(env_cfg, "target_motion"):
+        motion_cfg = env_cfg.target_motion
+        cv_probs = (1.0, 0.0, 0.0, 0.0)
+        env_cfg.target_motion = replace(
+            motion_cfg,
+            force_mode_cycle_on_reset=False,
+            train=replace(motion_cfg.train, mode_probabilities=cv_probs),
+            validation=replace(motion_cfg.validation, mode_probabilities=cv_probs),
+            test=replace(motion_cfg.test, mode_probabilities=cv_probs),
+        )
+        env_cfg.target_motion_split = "train"
     if steps is not None:
         audit_duration_s = (steps + 10) * env_cfg.sim.dt * env_cfg.decimation
         env_cfg.episode_length_s = max(float(env_cfg.episode_length_s), audit_duration_s)

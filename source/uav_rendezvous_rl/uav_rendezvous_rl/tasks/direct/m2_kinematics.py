@@ -10,6 +10,8 @@ from dataclasses import dataclass
 
 import torch
 
+from uav_rendezvous_rl.motions.constant_velocity import compute_constant_velocity
+
 
 @dataclass(frozen=True)
 class M2RandomizationCfg:
@@ -71,11 +73,16 @@ def compute_constant_velocity_position_w(
     v_w: torch.Tensor,
     elapsed_time: torch.Tensor,
 ) -> torch.Tensor:
-    """Compute fixed-height constant-velocity target position analytically."""
+    """Compute fixed-height constant-velocity target position analytically.
 
-    p_w = p_initial_w + v_w * elapsed_time.unsqueeze(-1)
-    p_w[:, 2] = p_initial_w[:, 2]
-    return p_w
+    M3 migrated the authoritative constant-velocity formula to
+    `uav_rendezvous_rl.motions.constant_velocity`. This M2 helper remains as a
+    compatibility wrapper so M2 regression tests exercise the same formula.
+    """
+
+    physics_dt = 1.0
+    step_count = elapsed_time.to(device=p_initial_w.device, dtype=torch.float64)
+    return compute_constant_velocity(p_initial_w, v_w, step_count, physics_dt, fixed_height=True).p_target_w
 
 
 def compute_relative_state_w(
