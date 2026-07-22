@@ -1,10 +1,12 @@
 # Milestone State
 
 Current milestone: M5
-Status: implemented_and_locally_verified_pending_user_acceptance
-Last completed milestone: M4
+Status: accepted
+Last completed milestone: M5
 M4 accepted tag: m4-accepted
 M4 accepted commit: 36592b6a14cd1a00d6bb689b3a33d27fe610a3b1
+M5 implementation commit: 887bb20a3d5a44eac479fc451fab89aa18296b57
+M5 independent audit result: ACCEPT M5 WITH NON-BLOCKING ISSUES
 Next milestone: M6, not authorized
 
 ## Authorized Work
@@ -72,7 +74,31 @@ Next milestone: M6, not authorized
 - Deterministic validation of `model_299.pt` on validation split with seed `4242`, 64 envs, and 4 episodes passed: `success_rate=1.0`, `collision_risk_rate=0.0`, `workspace_violation_rate=0.0`, `height_violation_rate=0.0`, `speed_violation_rate=0.0`, `success_offset_error.p95=0.3593`, and `success_relative_speed.p95=0.1695`.
 - M2, M3, and M4 regression audits were rerun during M5 work and passed.
 
-## Pending User Decision
+## M5 Final Validation
 
-- M5 is ready for user review/acceptance.
-- Do not enter M6 or create a Git commit without explicit user confirmation.
+- Split: validation
+- Seed: 4242
+- Environments: 64
+- Episodes per environment: 4
+- Total episodes: 256
+- Success rate: 1.0
+- Collision risk rate: 0.0
+- Successful offset error p95: 0.3593 m
+- Successful relative speed p95: 0.1695 m/s
+
+Local checkpoint, not tracked by Git:
+
+```text
+logs/rsl_rl/uav_rendezvous_m5_rl/2026-07-22_19-04-26_m5_rewardfix_300_seed42/model_299.pt
+```
+
+Non-blocking issues are recorded in:
+
+- `docs/known_issues.md`
+- `docs/m5_independent_audit.md`
+
+## Next Milestone Guard
+
+- M5 has passed user acceptance.
+- M6 has not started.
+- Do not enter M6 without explicit user confirmation.

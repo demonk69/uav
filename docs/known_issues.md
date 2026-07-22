@@ -27,3 +27,15 @@ These M4 results do not represent final policy performance under perception nois
 `BaselineInitialGeometryCfg.max_resample_attempts` is currently not wired into reset sampling. The fixed M4 initial geometry ranges naturally satisfy the safety conditions, so this does not affect M4 acceptance.
 
 Before M5 introduces randomized `b_des_w` and wider initial bearings, reset must implement finite-attempt, vectorized batch resampling. Infinite `while` loops are forbidden.
+
+## M5 Accepted Non-Blocking Issues
+
+M5 was accepted with non-blocking issues. These items are technical debt to address before or during later milestone work, especially before M6 changes done-mask or hidden-state behavior.
+
+1. `tests/test_m5_rewards.py` has some expected values that directly call the production reward function instead of a fully independent mathematical reference implementation. Current risk is low because pure unit tests, oracle audit, training, and 256-episode independent validation all passed. If reward formulas are changed later, add independent reference tests.
+
+2. The 5-iteration PPO startup test metrics are noisy. That test verifies training linkage, finite loss behavior, and checkpoint creation; it is not a convergence criterion. The 300-iteration from-scratch training run and independent validation passed.
+
+3. `Episode_Termination/time_out` logs an absolute episode count rather than a proportion. This follows the current Isaac Lab extras logging convention, but readers must interpret it as a count.
+
+4. Success and collision one-time events do not yet have dedicated multi-step unit tests. Runtime audits verified event accounting and reset behavior. Add this test coverage before M6 modifies done masks or recurrent hidden-state reset handling.

@@ -8,9 +8,22 @@ M3 provides a vectorized target motion library for the dual-placeholder truth en
 
 M4 adds an independent deterministic non-learning offset rendezvous baseline task. The M4 baseline controller uses only current deployable state: `p_ego_w`, `v_ego_w`, `p_target_w`, `v_target_w`, and fixed `b_des_w`.
 
-M5 adds an independent feedforward RL task, `Isaac-Uav-Rendezvous-RL-v0`, with a 3D raw velocity action mapped by `v_cmd_w = v_max * tanh(a_raw)`, 25D deployable Actor observations, 57D privileged Critic observations, separated reward terms, and explicit safety/workspace/height/speed/non-finite terminations.
+M5 adds an accepted independent feedforward RL task, `Isaac-Uav-Rendezvous-RL-v0`, with a 3D raw velocity action mapped by `v_cmd_w = v_max * tanh(a_raw)`, 25D deployable Actor observations, 57D privileged Critic observations, separated reward terms, and explicit safety/workspace/height/speed/non-finite terminations.
 
-M5 is implemented and locally verified, pending user acceptance. Final M5 verification details are in `docs/m5_verification.md`. M6 is not authorized.
+M5 has passed user acceptance with independent audit result `ACCEPT M5 WITH NON-BLOCKING ISSUES`. Final M5 verification details are in `docs/m5_verification.md`; the archived audit is in `docs/m5_independent_audit.md`. M6 is not authorized.
+
+## M5 Acceptance Summary
+
+- Actor observation: 25D deployable current-state observation.
+- Critic observation: 57D privileged current-state observation under the separate `critic` group.
+- Action: 3D raw action mapped by `tanh` to a velocity command.
+- Policy: feedforward PPO `ActorCritic`; no GRU, LSTM, or recurrent policy is present.
+- Final independent validation: validation split, seed `4242`, 64 environments, 4 episodes per environment, 256 total episodes.
+- Validation success rate: `100%`.
+- Validation collision-risk rate: `0`.
+- Successful-episode offset error p95: about `0.36 m`.
+- Successful-episode relative speed p95: about `0.17 m/s`.
+- Final checkpoint is local only and not tracked by Git: `logs/rsl_rl/uav_rendezvous_m5_rl/2026-07-22_19-04-26_m5_rewardfix_300_seed42/model_299.pt`.
 
 ## Task
 
