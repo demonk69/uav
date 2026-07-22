@@ -1,15 +1,19 @@
 # M4 Verification
 
 Milestone: M4
-Status: completed_pending_user_acceptance
+Status: accepted
 Date: 2026-07-22
 Branch: `feature/m4`
 
 ## Scope
 
-M4 implements a deterministic, non-learning, non-contact offset rendezvous baseline in an independent task, `Isaac-Uav-Rendezvous-Baseline-v0`. The original `Isaac-Uav-Rendezvous-Direct-v0` task remains the M2/M3 regression task with stationary ego and no-op actions.
+M4 implements a deterministic, non-learning, non-contact offset rendezvous baseline in an independent task, `Isaac-Uav-Rendezvous-Baseline-v0`. M4 has passed user technical acceptance. The original `Isaac-Uav-Rendezvous-Direct-v0` task remains the M2/M3 regression task with stationary ego and no-op actions.
 
 M4 did not enter M5. No PPO training, Actor/Critic networks, recurrent policies, rewards for learning, B-splines, Crazyflie, Multirotor/Thruster, Pegasus, PX4, ROS 2, or perception network work was performed.
+
+Implementation commit: `302b6b6a63b8de7b2268c0077b17d6eed3041d91`.
+
+Final acceptance commit after collision risk accounting fix: `cba8cafe84c7ca0f21e22c9b571d313d9a0fc855`.
 
 ## Runtime Command Requirements
 
@@ -80,8 +84,10 @@ env -u PYTHONPATH -u PYTHONHOME -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u VIRTUAL_
 Pytest passed:
 
 ```text
-41 passed
+45 passed
 ```
+
+The post-acceptance collision risk accounting tests verify that the first collision increments the episode count once, persistent collision does not increment again, reset clears episode accounting, and no-collision episodes keep a zero count.
 
 M2 audit passed with finite truth state, static ego, target motion, synchronized assets, and no contact. Reported minimum relative distance was `4.625568866729736 m` with `d_safe = 0.75 m`.
 
@@ -139,4 +145,4 @@ The Isaac Lab/Isaac Sim runtime emitted warnings during headless audits. They di
 
 M4 uses exact target truth, simplified ego kinematics, and short-horizon current-state extrapolation. Low error under the audited ConstantVelocity target does not represent final performance under perception noise, observation delay, disturbances, aggressive or complex maneuvers, or real multirotor dynamics.
 
-M5 remains unauthorized and unimplemented.
+M5 is authorized but not started and remains unimplemented.

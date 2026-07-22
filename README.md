@@ -8,13 +8,13 @@ M3 provides a vectorized target motion library for the dual-placeholder truth en
 
 Actor observations remain limited to `[p_rel_w, v_rel_w]`. They do not expose target motion mode labels, generator parameters, future schedules, or future target states.
 
-M4 adds an independent deterministic non-learning offset rendezvous baseline task. The original Direct task remains the M2/M3 regression task with stationary ego and no-op actions.
+M4 adds an independent deterministic non-learning offset rendezvous baseline task. M4 has passed user technical acceptance. The original Direct task remains the M2/M3 regression task with stationary ego and no-op actions.
 
 The M4 baseline controller uses only current deployable state: `p_ego_w`, `v_ego_w`, `p_target_w`, `v_target_w`, and fixed `b_des_w`. It does not read target motion mode, generator parameters, future schedules, or future target states.
 
-M2, M3, and M4 runtime audits have passed locally. M4 is awaiting user technical acceptance.
+M2, M3, and M4 runtime audits have passed locally. M4 is accepted.
 
-M5 is not implemented in this repository state.
+M5 is authorized but not started, and is not implemented in this repository state.
 
 ## Task
 

@@ -48,7 +48,7 @@ def test_milestone_state_forbids_m5_work() -> None:
     text = (PROJECT_ROOT / "docs/milestone_state.md").read_text(encoding="utf-8")
 
     assert "Current milestone: M4" in text
-    assert "Next milestone: M5, not authorized" in text
+    assert "Next milestone: M5, authorized but not started" in text
     assert "确定性非学习偏置交会基线" in text
     assert "PPO训练" in text
     assert "Crazyflie" in text

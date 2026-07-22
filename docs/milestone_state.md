@@ -1,11 +1,11 @@
 # Milestone State
 
 Current milestone: M4
-Status: completed_pending_user_acceptance
-Last completed milestone: M3
-M3 implementation commit: 17e05e8ebed2bbc100dc2eef9d8b0fe4486846c5
-M3 accepted tag commit: 605325a9142aa534d20b2d52ea6533cf598c2c12
-Next milestone: M5, not authorized
+Status: accepted
+Last completed milestone: M4
+M4 implementation commit: 302b6b6a63b8de7b2268c0077b17d6eed3041d91
+M4 final acceptance commit: cba8cafe84c7ca0f21e22c9b571d313d9a0fc855
+Next milestone: M5, authorized but not started
 
 ## Authorized Work
 
@@ -38,10 +38,11 @@ Next milestone: M5, not authorized
 
 - M2 accepted by user; acceptance tag is `m2-accepted`.
 - M3 accepted by user; acceptance tag is `m3-accepted` at commit `605325a9142aa534d20b2d52ea6533cf598c2c12`.
+- M3 implementation commit is `17e05e8ebed2bbc100dc2eef9d8b0fe4486846c5`.
 - M4 starts from `m3-accepted` on branch `feature/m4`.
 - The original `Isaac-Uav-Rendezvous-Direct-v0` task must remain an M2/M3 regression task with stationary ego and no-op action.
-- M5 is not authorized.
-- M4 is implemented locally and awaits user technical acceptance.
+- M4 passed user technical acceptance after collision risk accounting was fixed.
+- M5 is authorized but not started. No M5 functionality has been implemented.
 
 ## M4 Implementation Summary
 
@@ -75,4 +76,6 @@ Next milestone: M5, not authorized
 
 - Branch: `feature/m4`.
 - Review branch target: `review/m4`.
-- Commit message: `M4: add deterministic offset rendezvous baseline`.
+- M4 implementation commit: `302b6b6a63b8de7b2268c0077b17d6eed3041d91`.
+- M4 final acceptance commit: `cba8cafe84c7ca0f21e22c9b571d313d9a0fc855`.
+- Archive commit message: `Docs: finalize M4 acceptance`.
