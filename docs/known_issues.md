@@ -21,3 +21,9 @@ Do not refactor the manager as part of M3 acceptance archival work.
 M4 uses exact target truth, simplified ego dynamics, and current-state short-horizon extrapolation. The low audited errors for ConstantVelocity targets show that the deterministic offset rendezvous baseline and task plumbing are correct under these assumptions.
 
 These M4 results do not represent final policy performance under perception noise, observation delay, external disturbances, aggressive or complex target maneuvers, or real multirotor dynamics. Those conditions remain outside M4 and must not be inferred from the deterministic baseline audit.
+
+## M4 Baseline Initial Geometry Resampling Debt
+
+`BaselineInitialGeometryCfg.max_resample_attempts` is currently not wired into reset sampling. The fixed M4 initial geometry ranges naturally satisfy the safety conditions, so this does not affect M4 acceptance.
+
+Before M5 introduces randomized `b_des_w` and wider initial bearings, reset must implement finite-attempt, vectorized batch resampling. Infinite `while` loops are forbidden.

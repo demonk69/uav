@@ -29,6 +29,7 @@ def test_required_m4_files_exist() -> None:
         "source/uav_rendezvous_rl/uav_rendezvous_rl/controllers/__init__.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/controllers/baseline.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/controllers/configs.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/m4_accounting.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/m2_kinematics.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_env.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_env_cfg.py",

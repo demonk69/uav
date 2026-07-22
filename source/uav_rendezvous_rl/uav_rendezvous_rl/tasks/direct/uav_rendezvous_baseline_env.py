@@ -19,6 +19,7 @@ from uav_rendezvous_rl.motions.configs import get_split_cfg
 from uav_rendezvous_rl.motions.sampling import uniform_range
 
 from .m2_kinematics import all_finite
+from .m4_accounting import update_collision_risk_accounting
 from .uav_rendezvous_baseline_env_cfg import UavRendezvousBaselineEnvCfg
 from .uav_rendezvous_env import UavRendezvousEnv
 
@@ -225,8 +226,7 @@ class UavRendezvousBaselineEnv(UavRendezvousEnv):
     def _check_collision_against_current_target(self) -> None:
         center_distance = torch.linalg.norm(self.p_target_w - self.p_ego_w, dim=1)
         collision = center_distance < self.cfg.d_safe
-        self.collision_risk_buf[:] |= collision
-        self.collision_risk_count += collision.to(torch.long)
+        update_collision_risk_accounting(collision, self.collision_risk_buf, self.collision_risk_count)
         self.minimum_center_distance[:] = torch.minimum(self.minimum_center_distance, center_distance)
         self.min_relative_distance_per_episode[:] = torch.minimum(self.min_relative_distance_per_episode, center_distance)
         self._min_relative_distance_observed[:] = torch.minimum(self._min_relative_distance_observed, center_distance)
@@ -246,11 +246,10 @@ class UavRendezvousBaselineEnv(UavRendezvousEnv):
         self.minimum_center_distance[:] = torch.minimum(self.minimum_center_distance, center_distance)
         self.min_relative_distance_per_episode[:] = torch.minimum(self.min_relative_distance_per_episode, center_distance)
         self._min_relative_distance_observed[:] = torch.minimum(self._min_relative_distance_observed, center_distance)
-        self.collision_risk_buf[:] |= collision
+        update_collision_risk_accounting(collision, self.collision_risk_buf, self.collision_risk_count)
         self.workspace_violation_buf[:] |= ~workspace
         self.speed_violation_buf[:] |= speed_violation
         self.target_motion_invalid_buf[:] |= self.target_motion_manager.invalid_mask
-        self.collision_risk_count += collision.to(torch.long)
         self.workspace_violation_count += (~workspace).to(torch.long)
 
         success_step = (
