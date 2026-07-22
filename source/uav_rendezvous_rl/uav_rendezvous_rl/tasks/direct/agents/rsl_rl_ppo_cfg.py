@@ -1,6 +1,6 @@
 """RSL-RL PPO config placeholder for task registration.
 
-Training is not authorized in M1. This config exists so the task registry has a
+Training is not authorized in M2. This config exists so the task registry has a
 valid RSL-RL entry point for later milestones.
 """
 
@@ -14,7 +14,7 @@ class UavRendezvousPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 16
     max_iterations = 1
     save_interval = 1
-    experiment_name = "uav_rendezvous_m1"
+    experiment_name = "uav_rendezvous_m2"
     clip_actions = 1.0
     obs_groups = {"policy": ["policy"], "critic": ["policy"]}
     policy = RslRlPpoActorCriticCfg(

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Run the M1 environment with random bounded actions for a finite number of steps."""
+"""Run the M2 environment with random bounded actions for a finite number of steps."""
 
 from __future__ import annotations
 
 import argparse
+import json
 from typing import Any
 
 from isaaclab.app import AppLauncher
 
 
-parser = argparse.ArgumentParser(description="Random-action smoke agent for the UAV rendezvous M1 task.")
+parser = argparse.ArgumentParser(description="Random-action smoke agent for the UAV rendezvous M2 task.")
 parser.add_argument("--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Uav-Rendezvous-Direct-v0", help="Gymnasium task ID.")
@@ -35,6 +36,22 @@ def _assert_finite(name: str, value: Any) -> None:
             _assert_finite(f"{name}.{key}", item)
 
 
+def _check_m2_diagnostics(env: gym.Env) -> None:
+    diagnostics_fn = getattr(env.unwrapped, "get_m2_diagnostics", None)
+    if diagnostics_fn is None:
+        return
+
+    diagnostics = diagnostics_fn()
+    if not diagnostics["finite_check"]:
+        raise RuntimeError("M2 diagnostics reported non-finite truth state.")
+    if not diagnostics["target_moved"]:
+        raise RuntimeError("M2 diagnostics reported no target displacement.")
+    if not diagnostics["ego_static"]:
+        raise RuntimeError("M2 diagnostics reported ego displacement.")
+
+    print(f"[INFO] M2 diagnostics: {json.dumps(diagnostics, sort_keys=True)}", flush=True)
+
+
 def main() -> None:
     env = None
     try:
@@ -56,6 +73,7 @@ def main() -> None:
             if terminated.shape != truncated.shape:
                 raise RuntimeError("Terminated and truncated tensors have mismatched shapes.")
 
+        _check_m2_diagnostics(env)
         print(f"[INFO] random_agent completed {args_cli.steps} steps for {env.unwrapped.num_envs} environments.", flush=True)
     finally:
         if env is not None:

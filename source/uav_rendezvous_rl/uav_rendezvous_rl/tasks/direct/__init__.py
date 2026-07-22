@@ -1,4 +1,4 @@
-"""Direct workflow task registration for M1."""
+"""Direct workflow task registration for M2."""
 
 import gymnasium as gym
 
