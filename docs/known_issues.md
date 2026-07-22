@@ -9,3 +9,9 @@ The M2 placeholders are only synchronized state and visualization carriers. They
 Placeholder collision remains explicitly enabled in the asset schema because this is the stable configuration verified on this host. M2 remains non-contact: runtime audit checks that the center distance stays above `d_safe`, that synchronized asset positions and velocities match task tensors, and that ego has no physics-induced drift.
 
 Do not retry `kinematic_enabled=True` during M2 closure. Do not modify Isaac Lab, Isaac Sim, Pegasus, system Python dependencies, or NVIDIA driver components for this issue.
+
+## M3 TargetMotionManager CUDA Synchronization Debt
+
+`TargetMotionManager` currently has several high-frequency CUDA-path calls such as `torch.any(...).item()` and `count_nonzero(...).item()`. These can cause CPU-GPU synchronization. M3 functionality is correct and accepted, but before M5 large-scale parallel training this path must be profiled and non-essential synchronization should be reduced.
+
+Do not refactor the manager as part of M3 acceptance archival work.

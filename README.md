@@ -2,9 +2,13 @@
 
 External Isaac Lab project for a staged non-contact UAV offset rendezvous task.
 
-M2 has been implemented and is awaiting user acceptance. Current authorized work remains M2 closure only; M3 is not authorized.
+M3 has been completed and passed user technical acceptance at commit `17e05e8ebed2bbc100dc2eef9d8b0fe4486846c5`.
 
-M2 provides dual `ego` and `target` placeholders with truth-state relative observations, fixed-height constant-velocity target motion, and a stationary ego. The task tensors are the single source of truth; `RigidObject` placeholders are synchronized visualization/state carriers. It intentionally does not implement the M3 motion library, deterministic baseline, PPO training, recurrent policy, Pegasus, PX4, ROS 2, Crazyflie, or Multirotor/Thruster dynamics.
+M3 provides a vectorized target motion library for the dual-placeholder truth environment. The implemented target modes are `ConstantVelocity`, `ConstantAcceleration`, `ConstantTurn`, and `PiecewiseAcceleration`. The task tensors remain the single source of truth; `RigidObject` placeholders are synchronized visualization/state carriers.
+
+Actor observations remain limited to `[p_rel_w, v_rel_w]`. They do not expose target motion mode labels, generator parameters, future schedules, or future target states.
+
+M2 and M3 runtime audits have both passed. M4 is not implemented in this repository state.
 
 ## Task
 
@@ -32,7 +36,7 @@ env \
   /home/lab_726/IsaacLab/isaaclab.sh -p <script-or-module>
 ```
 
-## M2 Smoke Commands
+## Smoke Commands
 
 Install editable package:
 
@@ -57,4 +61,23 @@ Run M2 runtime audit:
 
 ```bash
 env -u PYTHONPATH -u PYTHONHOME -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u VIRTUAL_ENV /home/lab_726/IsaacLab/isaaclab.sh -p /home/lab_726/uav_rendezvous_rl/scripts/audit_m2_runtime.py --num_envs 16 --steps 1000 --seed 42 --device cuda:0 --headless
+```
+
+Run M3 runtime audit:
+
+```bash
+env \
+  -u PYTHONPATH \
+  -u PYTHONHOME \
+  -u CONDA_PREFIX \
+  -u CONDA_DEFAULT_ENV \
+  -u VIRTUAL_ENV \
+  /home/lab_726/IsaacLab/isaaclab.sh -p \
+  /home/lab_726/uav_rendezvous_rl/scripts/audit_m3_motion_runtime.py \
+  --num_envs 16 \
+  --steps 5000 \
+  --seed 42 \
+  --split train \
+  --device cuda:0 \
+  --headless
 ```

@@ -1,10 +1,10 @@
 # Milestone State
 
 Current milestone: M3
-Status: completed_pending_user_acceptance
-Last completed milestone: M2
-M2 acceptance commit: 34709da0c07c60f1aa8e1bf34ecf476992d54e46
-Next milestone: M4, not authorized
+Status: accepted
+Last completed milestone: M3
+M3 acceptance commit: 17e05e8ebed2bbc100dc2eef9d8b0fe4486846c5
+Next milestone: M4, authorized but not started
 
 ## Authorized Work
 
@@ -41,8 +41,8 @@ Next milestone: M4, not authorized
 - M2 accepted by user; acceptance commit is `34709da0c07c60f1aa8e1bf34ecf476992d54e46`.
 - Local `review/m2` was fast-forward merged into `main`; annotated tag `m2-accepted` was created at the M2 acceptance commit.
 - Remote `main` and tag `m2-accepted` were pushed before starting M3 work.
-- M3 work is confined to branch `feature/m3` until completion.
-- M4 is not authorized.
+- M3 accepted by user; acceptance commit is `17e05e8ebed2bbc100dc2eef9d8b0fe4486846c5`.
+- M4 is authorized but not started. This document update does not implement M4 functionality.
 
 ## M3 Implementation Summary
 
@@ -84,4 +84,4 @@ Next milestone: M4, not authorized
 
 - Branch: `feature/m3`.
 - Review branch target: `review/m3`.
-- Do not merge or enter M4 without explicit user confirmation.
+- M3 documentation archival is in progress before tagging `m3-accepted` and creating `feature/m4`.
