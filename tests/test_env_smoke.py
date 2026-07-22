@@ -1,4 +1,4 @@
-"""M4 smoke tests that do not launch Isaac Sim."""
+"""M5 smoke tests that do not launch Isaac Sim."""
 
 import pathlib
 
@@ -6,7 +6,7 @@ import pathlib
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
-def test_required_m4_files_exist() -> None:
+def test_required_m5_files_exist() -> None:
     required_files = [
         "AGENTS.md",
         "README.md",
@@ -16,7 +16,12 @@ def test_required_m4_files_exist() -> None:
         "docs/milestone_state.md",
         "scripts/zero_agent.py",
         "scripts/random_agent.py",
+        "scripts/train.py",
+        "scripts/play.py",
+        "scripts/evaluate.py",
         "source/uav_rendezvous_rl/setup.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/mdp/__init__.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/mdp/rendezvous.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/motions/__init__.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/motions/base.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/motions/configs.py",
@@ -35,20 +40,25 @@ def test_required_m4_files_exist() -> None:
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_env_cfg.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_baseline_env.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_baseline_env_cfg.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_rl_env.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_rl_env_cfg.py",
         "scripts/audit_m2_runtime.py",
         "scripts/audit_m3_motion_runtime.py",
         "scripts/audit_m4_baseline_runtime.py",
+        "scripts/audit_m5_rl_runtime.py",
     ]
 
     for relative_path in required_files:
         assert (PROJECT_ROOT / relative_path).is_file(), relative_path
 
 
-def test_milestone_state_forbids_m5_work() -> None:
+def test_milestone_state_authorizes_only_m5_work() -> None:
     text = (PROJECT_ROOT / "docs/milestone_state.md").read_text(encoding="utf-8")
 
-    assert "Current milestone: M4" in text
-    assert "Next milestone: M5, authorized but not started" in text
-    assert "确定性非学习偏置交会基线" in text
-    assert "PPO训练" in text
+    assert "Current milestone: M5" in text
+    assert "Next milestone: M6, not authorized" in text
+    assert "独立RL任务" in text
+    assert "前馈PPO短训练" in text
+    assert "GRU" in text
+    assert "recurrent PPO" in text
     assert "Crazyflie" in text

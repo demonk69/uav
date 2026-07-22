@@ -5,6 +5,7 @@ import gymnasium as gym
 
 TASK_ID = "Isaac-Uav-Rendezvous-Direct-v0"
 BASELINE_TASK_ID = "Isaac-Uav-Rendezvous-Baseline-v0"
+RL_TASK_ID = "Isaac-Uav-Rendezvous-RL-v0"
 
 
 def test_task_registers() -> None:
@@ -31,4 +32,19 @@ def test_baseline_task_registers_independently() -> None:
     assert spec.entry_point == "uav_rendezvous_rl.tasks.direct.uav_rendezvous_baseline_env:UavRendezvousBaselineEnv"
     assert spec.kwargs["env_cfg_entry_point"] == (
         "uav_rendezvous_rl.tasks.direct.uav_rendezvous_baseline_env_cfg:UavRendezvousBaselineEnvCfg"
+    )
+
+
+def test_rl_task_registers_independently() -> None:
+    import uav_rendezvous_rl.tasks  # noqa: F401
+
+    spec = gym.spec(RL_TASK_ID)
+
+    assert spec.id == RL_TASK_ID
+    assert spec.entry_point == "uav_rendezvous_rl.tasks.direct.uav_rendezvous_rl_env:UavRendezvousRLEnv"
+    assert spec.kwargs["env_cfg_entry_point"] == (
+        "uav_rendezvous_rl.tasks.direct.uav_rendezvous_rl_env_cfg:UavRendezvousRLEnvCfg"
+    )
+    assert spec.kwargs["rsl_rl_cfg_entry_point"] == (
+        "uav_rendezvous_rl.tasks.direct.agents.rsl_rl_ppo_cfg:UavRendezvousRLPPORunnerCfg"
     )

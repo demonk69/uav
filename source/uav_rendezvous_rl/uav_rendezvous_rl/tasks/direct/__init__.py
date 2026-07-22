@@ -24,3 +24,13 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:UavRendezvousPPORunnerCfg",
     },
 )
+
+gym.register(
+    id="Isaac-Uav-Rendezvous-RL-v0",
+    entry_point=f"{__name__}.uav_rendezvous_rl_env:UavRendezvousRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.uav_rendezvous_rl_env_cfg:UavRendezvousRLEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:UavRendezvousRLPPORunnerCfg",
+    },
+)

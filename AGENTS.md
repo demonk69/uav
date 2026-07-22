@@ -53,7 +53,7 @@ These rules are mandatory for all work in `/home/lab_726/uav_rendezvous_rl`.
    e_offset_w = p_ego_w - p_target_w - b_des_w
    ```
 
-9. M4 is accepted. M5 is authorized but not started; do not implement M5 functionality without explicit user instruction.
+9. This work session only executes M5. M6 is not authorized.
 
 10. Before each work session, reread:
 

@@ -2,25 +2,22 @@
 
 External Isaac Lab project for a staged non-contact UAV offset rendezvous task.
 
-M3 has been completed and passed user technical acceptance at tag `m3-accepted`.
+M4 has passed user technical acceptance at tag `m4-accepted`. The original Direct task remains the M2/M3 regression task with stationary ego and no-op actions.
 
 M3 provides a vectorized target motion library for the dual-placeholder truth environment. The implemented target modes are `ConstantVelocity`, `ConstantAcceleration`, `ConstantTurn`, and `PiecewiseAcceleration`. The task tensors remain the single source of truth; `RigidObject` placeholders are synchronized visualization/state carriers.
 
-Actor observations remain limited to `[p_rel_w, v_rel_w]`. They do not expose target motion mode labels, generator parameters, future schedules, or future target states.
+M4 adds an independent deterministic non-learning offset rendezvous baseline task. The M4 baseline controller uses only current deployable state: `p_ego_w`, `v_ego_w`, `p_target_w`, `v_target_w`, and fixed `b_des_w`.
 
-M4 adds an independent deterministic non-learning offset rendezvous baseline task. M4 has passed user technical acceptance. The original Direct task remains the M2/M3 regression task with stationary ego and no-op actions.
+M5 adds an independent feedforward RL task, `Isaac-Uav-Rendezvous-RL-v0`, with a 3D raw velocity action mapped by `v_cmd_w = v_max * tanh(a_raw)`, 25D deployable Actor observations, 57D privileged Critic observations, separated reward terms, and explicit safety/workspace/height/speed/non-finite terminations.
 
-The M4 baseline controller uses only current deployable state: `p_ego_w`, `v_ego_w`, `p_target_w`, `v_target_w`, and fixed `b_des_w`. It does not read target motion mode, generator parameters, future schedules, or future target states.
-
-M2, M3, and M4 runtime audits have passed locally. M4 is accepted.
-
-M5 is authorized but not started, and is not implemented in this repository state.
+M5 is implemented and locally verified, pending user acceptance. Final M5 verification details are in `docs/m5_verification.md`. M6 is not authorized.
 
 ## Task
 
 ```text
 Isaac-Uav-Rendezvous-Direct-v0
 Isaac-Uav-Rendezvous-Baseline-v0
+Isaac-Uav-Rendezvous-RL-v0
 ```
 
 ## Isaac Lab Entry
@@ -106,4 +103,35 @@ env \
   --split train \
   --device cuda:0 \
   --headless
+```
+
+Run M5 RL runtime audit:
+
+```bash
+env \
+  -u PYTHONPATH \
+  -u PYTHONHOME \
+  -u CONDA_PREFIX \
+  -u CONDA_DEFAULT_ENV \
+  -u VIRTUAL_ENV \
+  /home/lab_726/IsaacLab/isaaclab.sh -p \
+  /home/lab_726/uav_rendezvous_rl/scripts/audit_m5_rl_runtime.py \
+  --scenario all \
+  --num_envs 64 \
+  --steps 10000 \
+  --seed 42 \
+  --device cuda:0 \
+  --headless
+```
+
+Run M5 short PPO sanity training:
+
+```bash
+env -u PYTHONPATH -u PYTHONHOME -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u VIRTUAL_ENV /home/lab_726/IsaacLab/isaaclab.sh -p /home/lab_726/uav_rendezvous_rl/scripts/train.py --task Isaac-Uav-Rendezvous-RL-v0 --num_envs 64 --max_iterations 5 --seed 42 --device cuda:0 --headless --run_name m5_startup
+```
+
+Run final M5 deterministic validation:
+
+```bash
+env -u PYTHONPATH -u PYTHONHOME -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u VIRTUAL_ENV /home/lab_726/IsaacLab/isaaclab.sh -p /home/lab_726/uav_rendezvous_rl/scripts/evaluate.py --task Isaac-Uav-Rendezvous-RL-v0 --policy trained --num_envs 64 --episodes 4 --seed 4242 --split validation --checkpoint /home/lab_726/uav_rendezvous_rl/logs/rsl_rl/uav_rendezvous_m5_rl/2026-07-22_19-04-26_m5_rewardfix_300_seed42/model_299.pt --device cuda:0 --headless
 ```
