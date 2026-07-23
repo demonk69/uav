@@ -12,7 +12,7 @@ M5 adds an accepted independent feedforward RL task, `Isaac-Uav-Rendezvous-RL-v0
 
 M5 has passed user acceptance with independent audit result `ACCEPT M5 WITH NON-BLOCKING ISSUES`. Final M5 verification details are in `docs/m5_verification.md`; the archived audit is in `docs/m5_independent_audit.md`.
 
-M6 implementation is complete and pending user acceptance. It adds independent recurrent task `Isaac-Uav-Rendezvous-Recurrent-v0`, a GRU `ActorCriticRecurrent` PPO config, recurrent-safe play/evaluate reset handling, hidden-state audits, a mixed four-mode target-motion distribution, checkpoint-resume verification, and a fair feedforward ablation task over the same environment. Final M6 verification details are in `docs/m6_verification.md`. The mixed-mode GRU passed absolute safety/performance validation, but did not outperform the fair feedforward ablation.
+M6 has passed user acceptance with independent audit result `ACCEPT M6 WITH MAJOR LIMITATION`. It adds independent recurrent task `Isaac-Uav-Rendezvous-Recurrent-v0`, a fair feedforward ablation task `Isaac-Uav-Rendezvous-M6-Feedforward-Ablation-v0`, a GRU `ActorCriticRecurrent` PPO config, recurrent-safe play/evaluate reset handling, hidden-state audits, a mixed four-mode target-motion distribution, and checkpoint save/load/resume verification. Final M6 verification details are in `docs/m6_verification.md`; the archived audit is in `docs/m6_independent_audit.md`. M6 did not add noise, delay, wind, dropped observations, or visual-estimation error. M7 is not authorized.
 
 ## M5 Acceptance Summary
 
@@ -29,15 +29,22 @@ M6 implementation is complete and pending user acceptance. It adds independent r
 
 ## M6 Verification Summary
 
+- M6 user acceptance result: `ACCEPT M6 WITH MAJOR LIMITATION`.
 - Recurrent task: `Isaac-Uav-Rendezvous-Recurrent-v0`.
 - Fair feedforward ablation task: `Isaac-Uav-Rendezvous-M6-Feedforward-Ablation-v0`.
 - Actor observation: 25D deployable current-state observation; no mode labels, motion parameters, future target states, future commands, or future trajectories.
 - Critic observation: 57D privileged current-state observation under the separate `critic` group.
+- Recurrent policy: GRU, not LSTM, with independent Actor and Critic recurrent memories.
+- Hidden reset, checkpoint save/load/resume, recurrent play, and recurrent evaluation have been verified.
+- Both GRU and fair feedforward policies safely completed the mixed-mode validation task with zero collision-risk rate.
 - Mixed GRU validation: validation split, seed `4242`, 64 environments, 8 episodes per environment, balanced 128 episodes per mode; success rate `0.9980`, collision-risk rate `0`, successful offset p95 about `0.463 m`, successful relative-speed p95 about `0.220 m/s`.
 - Fair feedforward ablation validation with the same protocol: success rate `1.0`, collision-risk rate `0`, successful offset p95 about `0.198 m`, successful relative-speed p95 about `0.109 m/s`.
+- The fair feedforward ablation quantitatively outperformed GRU on offset p95, relative-speed p95, average return, and convergence time.
+- 未证明GRU性能优势; history sensitivity verifies mechanism only, not task performance superiority.
 - Final mixed GRU checkpoint is local only and not tracked by Git: `logs/rsl_rl/uav_rendezvous_m6_gru/2026-07-22_23-56-05_m6_mixed_gru_300_seed42/model_299.pt`.
 - Final feedforward ablation checkpoint is local only and not tracked by Git: `logs/rsl_rl/uav_rendezvous_m6_feedforward_ablation/2026-07-23_00-11-43_m6_ff_ablation_300_seed42/model_299.pt`.
 - M6 recurrent training and hidden-state management are functional, but a measurable implicit-prediction advantage over the fair feedforward baseline was not demonstrated.
+- M7 remains unauthorized.
 
 ## Task
 

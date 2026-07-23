@@ -39,3 +39,39 @@ M5 was accepted with non-blocking issues. These items are technical debt to addr
 3. `Episode_Termination/time_out` logs an absolute episode count rather than a proportion. This follows the current Isaac Lab extras logging convention, but readers must interpret it as a count.
 
 4. Success and collision one-time events do not yet have dedicated multi-step unit tests. Runtime audits verified event accounting and reset behavior. Add this test coverage before M6 modifies done masks or recurrent hidden-state reset handling.
+
+## M6 Recurrent Performance Limitation
+
+M6 verified the following capabilities:
+
+- GRU recurrent PPO chain.
+- Independent Actor and Critic memory.
+- Done-mask hidden reset.
+- Checkpoint save, load, and resume.
+- History sensitivity.
+- Mixed-mode safe operation.
+
+However, the fair feedforward baseline outperformed GRU on the current task:
+
+- Success offset p95: feedforward about `0.196 m`, GRU about `0.463 m`.
+- Relative speed p95: feedforward about `0.109 m/s`, GRU about `0.222 m/s`.
+- Return: feedforward about `2192`, GRU about `1986`.
+- Convergence time: feedforward about `3.23 s`, GRU about `5.38 s`.
+
+Therefore M6 proves that GRU can retain and use history, but it does not prove that implicit history-based prediction provides a task performance advantage.
+
+Likely reasons include:
+
+- The current 25D Actor observation is already close to Markov state.
+- Current target relative velocity is sufficient for the existing target-motion range.
+- Target maneuver intensity is not high enough to create strong partial observability.
+- GRU optimization difficulty and the fixed training budget offset the potential benefit of historical information.
+
+History sensitivity must not be described as proof of a performance advantage.
+
+M6 non-blocking issues:
+
+1. Some configuration tests are string-based and do not fully instantiate configuration classes.
+2. History sensitivity uses synthetic observations and verifies mechanism only.
+3. Per-mode cycling associates environment ID with mode, but statistical coverage is sufficient.
+4. One Isaac Sim startup-stage segmentation fault occurred and was not reproduced in subsequent formal runs.

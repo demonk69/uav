@@ -1,15 +1,42 @@
 # Milestone State
 
 Current milestone: M6
-Status: implementation_complete_pending_user_acceptance
-Last completed milestone: M5
+Status: accepted_with_major_limitation
+Last completed milestone: M6
 M4 accepted tag: m4-accepted
 M4 accepted commit: 36592b6a14cd1a00d6bb689b3a33d27fe610a3b1
 M5 implementation commit: 887bb20a3d5a44eac479fc451fab89aa18296b57
 M5 accepted tag: m5-accepted
 M5 accepted commit: 61e3a8107b966bf146b46a3855b0ac256cdf53c2
 M5 independent audit result: ACCEPT M5 WITH NON-BLOCKING ISSUES
+M6 implementation commit: 2f4dd9c85b931075294f59bafe7e39d9b2127765
+M6 independent audit result: ACCEPT M6 WITH MAJOR LIMITATION
 Next milestone: M7, not authorized
+
+## M6 Acceptance Summary
+
+M6 accepted capabilities:
+
+- Recurrent PPO infrastructure
+- GRU Actor and Critic memory
+- Per-env done-mask hidden reset
+- Recurrent play and evaluation
+- Checkpoint save/load/resume
+- History sensitivity
+- Mixed-mode safe operation
+- Fair feedforward ablation
+
+Major limitation:
+
+A measurable performance advantage of GRU over the fair feedforward baseline was not demonstrated.
+
+Independent audit:
+
+```text
+docs/m6_independent_audit.md
+```
+
+M7 has not started.
 
 ## Authorized Work
 
@@ -149,10 +176,10 @@ logs/rsl_rl/uav_rendezvous_m6_feedforward_ablation/2026-07-23_00-11-43_m6_ff_abl
 
 M6 recurrent training and hidden-state management are functional, but a measurable implicit-prediction advantage over the fair feedforward baseline was not demonstrated.
 
-M6 is implementation-complete and pending user acceptance. M7 is not authorized.
+M6 is accepted with major limitation. M7 is not authorized and has not started.
 
 ## Next Milestone Guard
 
 - M5 has passed user acceptance.
-- M6 implementation is complete and pending user acceptance.
+- M6 has passed user acceptance with major limitation.
 - Do not enter M7 without explicit user confirmation.
