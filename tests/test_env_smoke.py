@@ -1,4 +1,4 @@
-"""M5 smoke tests that do not launch Isaac Sim."""
+"""Smoke tests that do not launch Isaac Sim."""
 
 import pathlib
 
@@ -42,23 +42,27 @@ def test_required_m5_files_exist() -> None:
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_baseline_env_cfg.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_rl_env.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_rl_env_cfg.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_recurrent_env.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_recurrent_env_cfg.py",
         "scripts/audit_m2_runtime.py",
         "scripts/audit_m3_motion_runtime.py",
         "scripts/audit_m4_baseline_runtime.py",
         "scripts/audit_m5_rl_runtime.py",
+        "scripts/audit_m6_recurrent_runtime.py",
+        "scripts/audit_m6_history_sensitivity.py",
+        "scripts/audit_m6_checkpoint_resume.py",
     ]
 
     for relative_path in required_files:
         assert (PROJECT_ROOT / relative_path).is_file(), relative_path
 
 
-def test_milestone_state_authorizes_only_m5_work() -> None:
+def test_milestone_state_authorizes_only_m6_work() -> None:
     text = (PROJECT_ROOT / "docs/milestone_state.md").read_text(encoding="utf-8")
 
-    assert "Current milestone: M5" in text
-    assert "Next milestone: M6, not authorized" in text
-    assert "独立RL任务" in text
-    assert "前馈PPO短训练" in text
-    assert "GRU" in text
-    assert "recurrent PPO" in text
+    assert "Current milestone: M6" in text
+    assert "Next milestone: M7, not authorized" in text
+    assert "独立Recurrent RL任务" in text
+    assert "GRU Recurrent PPO" in text
+    assert "公平前馈ablation对照" in text
     assert "Crazyflie" in text

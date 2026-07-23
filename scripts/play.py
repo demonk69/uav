@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Play a trained M5 feedforward PPO checkpoint deterministically."""
+"""Play a trained PPO checkpoint deterministically."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from isaaclab.app import AppLauncher
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Deterministic checkpoint playback for the M5 UAV rendezvous RL task.")
+    parser = argparse.ArgumentParser(description="Deterministic checkpoint playback for UAV rendezvous RL tasks.")
     parser.add_argument("--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O.")
     parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
     parser.add_argument("--task", type=str, default="Isaac-Uav-Rendezvous-RL-v0", help="Gymnasium task ID.")
@@ -23,6 +23,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--load_checkpoint", type=str, default="model_.*.pt", help="Checkpoint regex when omitted.")
     parser.add_argument("--steps", type=int, default=1000, help="Finite playback steps before exiting.")
     parser.add_argument("--real_time", action="store_true", default=False, help="Sleep to approximate real-time playback.")
+    parser.add_argument(
+        "--audit_hidden_state",
+        action="store_true",
+        default=False,
+        help="Audit recurrent hidden-state reset behavior before playback.",
+    )
     AppLauncher.add_app_launcher_args(parser)
     return parser
 
@@ -34,6 +40,7 @@ simulation_app = app_launcher.app
 import gymnasium as gym  # noqa: E402
 import torch  # noqa: E402
 from rsl_rl.runners import OnPolicyRunner  # noqa: E402
+from tensordict import TensorDict  # noqa: E402
 
 import uav_rendezvous_rl.tasks  # noqa: E402, F401
 from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper  # noqa: E402
@@ -59,20 +66,71 @@ def _resolve_checkpoint(agent_cfg: Any) -> str:
     return checkpoint
 
 
+def _policy_device(policy_nn: Any) -> torch.device:
+    return next(policy_nn.parameters()).device
+
+
+def _obs_to_tensordict(policy_nn: Any, obs_dict: dict[str, torch.Tensor]) -> TensorDict:
+    device = _policy_device(policy_nn)
+    batch_size = [int(obs_dict["policy"].shape[0])]
+    return TensorDict({key: value.to(device=device) for key, value in obs_dict.items()}, batch_size=batch_size)
+
+
+def _reset_policy(policy_nn: Any, dones: torch.Tensor | None = None) -> None:
+    with torch.inference_mode():
+        if dones is None:
+            policy_nn.reset()
+        else:
+            policy_nn.reset(dones.to(device=_policy_device(policy_nn)))
+
+
 def _deterministic_actions(policy_nn: Any, obs_dict: dict[str, torch.Tensor]) -> torch.Tensor:
     action_device = obs_dict["policy"].device
-    inference_device = next(policy_nn.parameters()).device
-    actor_obs = obs_dict["policy"].to(device=inference_device)
-    if hasattr(policy_nn, "actor_obs_normalizer"):
-        actor_obs = policy_nn.actor_obs_normalizer(actor_obs)
-    actions = policy_nn.actor(actor_obs)
-    if getattr(policy_nn, "state_dependent_std", False):
-        actions = actions[..., 0, :]
+    actions = policy_nn.act_inference(_obs_to_tensordict(policy_nn, obs_dict))
     return actions.to(device=action_device)
 
 
 def _clone_obs_dict(obs_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     return {key: value.detach().clone() for key, value in obs_dict.items()}
+
+
+def _assert_recurrent_hidden_reset(policy_nn: Any, obs_dict: dict[str, torch.Tensor]) -> None:
+    if not bool(getattr(policy_nn, "is_recurrent", False)):
+        print("[INFO] Hidden-state audit skipped for feedforward policy.", flush=True)
+        return
+    if not isinstance(policy_nn.memory_a.rnn, torch.nn.GRU) or not isinstance(policy_nn.memory_c.rnn, torch.nn.GRU):
+        raise RuntimeError("M6 hidden-state audit requires GRU actor and critic memories.")
+    if policy_nn.memory_a is policy_nn.memory_c:
+        raise RuntimeError("Actor and critic recurrent memories must be independent objects.")
+
+    _reset_policy(policy_nn)
+    obs_td = _obs_to_tensordict(policy_nn, obs_dict)
+    with torch.inference_mode():
+        policy_nn.act_inference(obs_td)
+        policy_nn.evaluate(obs_td)
+    actor_before = policy_nn.memory_a.hidden_state.detach().clone()
+    critic_before = policy_nn.memory_c.hidden_state.detach().clone()
+    if actor_before.shape[1] < 2:
+        dones = torch.ones(actor_before.shape[1], dtype=torch.long, device=actor_before.device)
+    else:
+        dones = torch.zeros(actor_before.shape[1], dtype=torch.long, device=actor_before.device)
+        dones[0] = 1
+    _reset_policy(policy_nn, dones)
+    actor_after = policy_nn.memory_a.hidden_state
+    critic_after = policy_nn.memory_c.hidden_state
+    done_mask = dones == 1
+    keep_mask = ~done_mask
+    if not bool(torch.all(actor_after[:, done_mask, :] == 0.0).item()):
+        raise RuntimeError("Actor GRU hidden state was not cleared for done envs.")
+    if not bool(torch.all(critic_after[:, done_mask, :] == 0.0).item()):
+        raise RuntimeError("Critic GRU hidden state was not cleared for done envs.")
+    if bool(torch.any(keep_mask).item()):
+        torch.testing.assert_close(actor_after[:, keep_mask, :], actor_before[:, keep_mask, :])
+        torch.testing.assert_close(critic_after[:, keep_mask, :], critic_before[:, keep_mask, :])
+    _reset_policy(policy_nn)
+    if policy_nn.memory_a.hidden_state is not None or policy_nn.memory_c.hidden_state is not None:
+        raise RuntimeError("Full recurrent reset did not clear hidden states.")
+    print("[INFO] Hidden-state reset audit passed.", flush=True)
 
 
 def main() -> None:
@@ -104,9 +162,12 @@ def main() -> None:
         policy_nn = runner.alg.policy
         policy_nn.to("cpu")
         policy_nn.eval()
+        _reset_policy(policy_nn)
         obs_dict, _ = gym_env.reset()
         obs_dict = _clone_obs_dict(obs_dict)
         _assert_finite("reset_obs", obs_dict)
+        if args_cli.audit_hidden_state:
+            _assert_recurrent_hidden_reset(policy_nn, obs_dict)
         dt = gym_env.unwrapped.step_dt
         print(f"[INFO] Starting deterministic play loop for {args_cli.steps} steps.", flush=True)
 
@@ -123,7 +184,7 @@ def main() -> None:
                     )
                 obs_dict, rewards, terminated, truncated, _ = gym_env.step(actions)
                 dones = (terminated | truncated).to(dtype=torch.long)
-                policy_nn.reset(dones)
+                _reset_policy(policy_nn, dones)
                 obs_dict = _clone_obs_dict(obs_dict)
                 if step == 0:
                     print(
