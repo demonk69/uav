@@ -1,7 +1,8 @@
 # Milestone State
 
-Current milestone: M6
-Status: accepted_with_major_limitation
+Current milestone: M7
+Current sub-milestone: M7A
+Status: in_progress
 Last completed milestone: M6
 M4 accepted tag: m4-accepted
 M4 accepted commit: 36592b6a14cd1a00d6bb689b3a33d27fe610a3b1
@@ -10,8 +11,11 @@ M5 accepted tag: m5-accepted
 M5 accepted commit: 61e3a8107b966bf146b46a3855b0ac256cdf53c2
 M5 independent audit result: ACCEPT M5 WITH NON-BLOCKING ISSUES
 M6 implementation commit: 2f4dd9c85b931075294f59bafe7e39d9b2127765
+M6 accepted tag: m6-accepted
+M6 accepted commit: acc27beca2528db21fe1604118e448a87f7e298a
+M6 acceptance result: ACCEPT M6 WITH MAJOR LIMITATION
 M6 independent audit result: ACCEPT M6 WITH MAJOR LIMITATION
-Next milestone: M7, not authorized
+Next sub-milestone: M7B, not authorized
 
 ## M6 Acceptance Summary
 
@@ -36,9 +40,36 @@ Independent audit:
 docs/m6_independent_audit.md
 ```
 
-M7 has not started.
+M7A has started after explicit user authorization. M7B and M7C are not authorized.
 
-## Authorized Work
+## M7A Authorization
+
+Authorized M7A work:
+
+- Controlled observation delay.
+- Relative-velocity low-frequency update and sample-and-hold.
+- Observation dropout with last-valid-value hold.
+- Small zero-mean Gaussian observation noise.
+- Independent GRU and feedforward fair-control tasks.
+- Observation history buffer.
+- Causality and no-future-leakage tests.
+- M7A training and validation for stages 0, 1, and 2.
+- Infrastructure, tests, and 10000-step stability audits for stages 3 and 4.
+- M2 through M6 regression tests.
+
+Forbidden in M7A:
+
+- M7B dynamics randomization.
+- Wind disturbance.
+- Control execution delay.
+- Mass, inertia, or thrust randomization.
+- Crazyflie, Multirotor/Thruster, Pegasus, PX4, ROS 2.
+- First-stage vision network, image input, or distance-dependent visual error model.
+- Modifying accepted M2 through M6 task behavior.
+- Adding mode labels, target motion parameters, target acceleration truth, target future state, target future command, future segment schedule, complete future trajectory, dropout mask, observation age, or raw history buffer contents to the Actor.
+- Entering M7B or M7C.
+
+## M6 Authorized Work
 
 - 独立Recurrent RL任务 `Isaac-Uav-Rendezvous-Recurrent-v0`
 - GRU Recurrent PPO
@@ -82,7 +113,8 @@ M7 has not started.
 - The original `Isaac-Uav-Rendezvous-Direct-v0` task must remain an M2/M3 regression task with stationary ego and no-op action.
 - The original `Isaac-Uav-Rendezvous-Baseline-v0` task must remain the M4 deterministic baseline and must not be affected by RL actions.
 - The existing `Isaac-Uav-Rendezvous-RL-v0` task must remain the M5 feedforward PPO task and must not be converted into a recurrent task.
-- M7 is not authorized.
+- M7A starts from `m6-accepted` on local branch `feature/m7` after explicit user authorization.
+- M7B and M7C are not authorized.
 
 ## M5 Implementation Snapshot
 
@@ -176,10 +208,33 @@ logs/rsl_rl/uav_rendezvous_m6_feedforward_ablation/2026-07-23_00-11-43_m6_ff_abl
 
 M6 recurrent training and hidden-state management are functional, but a measurable implicit-prediction advantage over the fair feedforward baseline was not demonstrated.
 
-M6 is accepted with major limitation. M7 is not authorized and has not started.
+M6 is accepted with major limitation. At M6 acceptance time, M7 was not authorized; M7A has since been explicitly authorized and started on `feature/m7`.
 
 ## Next Milestone Guard
 
 - M5 has passed user acceptance.
 - M6 has passed user acceptance with major limitation.
-- Do not enter M7 without explicit user confirmation.
+- M7A is authorized and in progress.
+- Do not enter M7B or M7C without explicit user confirmation.
+
+## M7A Progress
+
+- Implemented independent M7A GRU and feedforward tasks without modifying accepted M2 through M6 task IDs.
+- Implemented strictly causal observation degradation for Stage 0 through Stage 4 infrastructure.
+- Full pytest passed before formal training: `95 passed in 1.65s`.
+- M2 through M6 regression audits passed during M7A implementation.
+- Stage 3 and Stage 4 M7A 10000-step observation pipeline audits passed.
+- Formal Stage 0, Stage 1, and Stage 2 GRU/feedforward training runs completed with matched 300-iteration budgets.
+- Matched validation results are recorded in `docs/m7a_verification.md`.
+
+M7A conclusion so far:
+
+```text
+No M7A history-value performance advantage is demonstrated. Feedforward outperformed GRU on Stage 0, Stage 1, and Stage 2 matched validation while preserving zero collision risk.
+```
+
+Residual M7A issue:
+
+```text
+scripts/audit_m7_pomdp_comparison.py exposed an Isaac same-process multi-environment lifecycle issue. Formal metrics were collected with scripts/evaluate.py instead.
+```

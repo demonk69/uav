@@ -37,7 +37,7 @@ def test_m6_gru_config_matches_required_contract() -> None:
 
 def test_m6_feedforward_ablation_is_not_recurrent_and_uses_same_rollout_length() -> None:
     text = CFG_SOURCE.read_text(encoding="utf-8")
-    block = _class_block(text, "UavRendezvousM6FeedforwardAblationPPORunnerCfg")
+    block = _class_block(text, "UavRendezvousM6FeedforwardAblationPPORunnerCfg", "UavRendezvousM7AGRUPPORunnerCfg")
 
     assert "RslRlPpoActorCriticRecurrentCfg" not in block
     assert "RslRlPpoActorCriticCfg" in block

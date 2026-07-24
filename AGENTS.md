@@ -53,7 +53,7 @@ These rules are mandatory for all work in `/home/lab_726/uav_rendezvous_rl`.
    e_offset_w = p_ego_w - p_target_w - b_des_w
    ```
 
-9. This work session only executes M6. M7 is not authorized.
+9. This work session only executes M7A: controlled partial observability and history-value validation. M7B and M7C are not authorized.
 
 10. Before each work session, reread:
 
@@ -67,3 +67,17 @@ These rules are mandatory for all work in `/home/lab_726/uav_rendezvous_rl`.
 11. After each completed task, update `docs/milestone_state.md`.
 
 12. Do not enter the next milestone or create a Git commit without user confirmation.
+
+13. M7A must not modify the behavior of the accepted M2 through M6 tasks:
+
+    ```text
+    Isaac-Uav-Rendezvous-Direct-v0
+    Isaac-Uav-Rendezvous-Baseline-v0
+    Isaac-Uav-Rendezvous-RL-v0
+    Isaac-Uav-Rendezvous-Recurrent-v0
+    Isaac-Uav-Rendezvous-M6-Feedforward-Ablation-v0
+    ```
+
+14. In M7A, the Actor must not read truth substituted for degraded observations, target motion mode labels, target generator parameters, observation dropout masks, observation age, future target states, future target commands, future segment schedules, complete future trajectories, or other simulator privileged information unavailable at deployment.
+
+15. All M7A observation degradation must be strictly causal: current truth may be sampled, written to history, and then only current or past samples may be exposed through delay, sample-and-hold, dropout, and zero-mean noise.

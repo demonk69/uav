@@ -8,7 +8,8 @@ def test_m5_ppo_config_is_feedforward_asymmetric_and_unclipped() -> None:
     text = source.read_text(encoding="utf-8")
 
     class_start = text.index("class UavRendezvousRLPPORunnerCfg")
-    m5_class = text[class_start:]
+    class_end = text.index("class UavRendezvousM6FeedforwardAblationPPORunnerCfg", class_start)
+    m5_class = text[class_start:class_end]
 
     assert "RslRlPpoActorCriticRecurrentCfg" not in m5_class
     assert "clip_actions = None" in m5_class

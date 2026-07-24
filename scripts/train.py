@@ -33,6 +33,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Cycle modes by env id on reset. Intended for balanced mixed-mode evaluation/audits.",
     )
+    parser.add_argument(
+        "--m7a_stage",
+        type=str,
+        default=None,
+        help="Override M7A observation-degradation stage: 0, 1, 2, 3, or 4.",
+    )
     parser.add_argument("--run_name", type=str, default=None, help="Optional run-name suffix.")
     parser.add_argument("--resume", action="store_true", default=False, help="Resume from a previous run.")
     parser.add_argument("--load_run", type=str, default=None, help="Run directory regex for resume.")
@@ -50,6 +56,7 @@ import torch  # noqa: E402
 from rsl_rl.runners import OnPolicyRunner  # noqa: E402
 
 import uav_rendezvous_rl.tasks  # noqa: E402, F401
+from uav_rendezvous_rl.observations import make_m7a_observation_cfg  # noqa: E402
 from isaaclab.utils.io import dump_yaml  # noqa: E402
 from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper  # noqa: E402
 from isaaclab_tasks.utils import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg  # noqa: E402
@@ -88,6 +95,14 @@ def _configure_target_motion(env_cfg: object, mode_name: str | None, force_cycle
     )
 
 
+def _configure_m7a_observation(env_cfg: object, stage: str | None) -> None:
+    if stage is None:
+        return
+    if not hasattr(env_cfg, "observation_degradation"):
+        raise RuntimeError("--m7a_stage can only be used with M7A tasks.")
+    env_cfg.observation_degradation = make_m7a_observation_cfg(stage)
+
+
 def _hidden_norm(hidden_state: torch.Tensor | tuple[torch.Tensor, torch.Tensor] | None) -> float:
     if hidden_state is None:
         return 0.0
@@ -122,12 +137,13 @@ def _install_recurrent_hidden_norm_logging(runner: OnPolicyRunner) -> None:
 def _assert_recurrent_policy_contract(runner: OnPolicyRunner, task_id: str) -> None:
     policy = runner.alg.policy
     is_recurrent = bool(getattr(policy, "is_recurrent", False))
-    if task_id != "Isaac-Uav-Rendezvous-Recurrent-v0" and not is_recurrent:
+    recurrent_task_ids = {"Isaac-Uav-Rendezvous-Recurrent-v0", "Isaac-Uav-Rendezvous-M7A-GRU-v0"}
+    if task_id not in recurrent_task_ids and not is_recurrent:
         return
 
     policy_class = policy.__class__.__name__
     _require(policy_class == "ActorCriticRecurrent", f"Expected ActorCriticRecurrent, got {policy_class}.")
-    _require(is_recurrent, "M6 recurrent policy did not report is_recurrent=True.")
+    _require(is_recurrent, "Recurrent policy did not report is_recurrent=True.")
     _require(hasattr(policy, "memory_a") and hasattr(policy, "memory_c"), "Recurrent policy missing actor/critic memory.")
     _require(policy.memory_a is not policy.memory_c, "Actor and critic recurrent memories must be independent objects.")
     _require(isinstance(policy.memory_a.rnn, torch.nn.GRU), "Actor memory is not a GRU.")
@@ -171,6 +187,7 @@ def main() -> None:
         env_cfg.seed = agent_cfg.seed
     agent_cfg.device = device
     _configure_target_motion(env_cfg, args_cli.target_motion_mode, args_cli.force_mode_cycle_on_reset)
+    _configure_m7a_observation(env_cfg, args_cli.m7a_stage)
     if args_cli.num_steps_per_env is not None:
         agent_cfg.num_steps_per_env = args_cli.num_steps_per_env
     if args_cli.max_iterations is not None:

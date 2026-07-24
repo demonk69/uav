@@ -54,3 +54,23 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:UavRendezvousM6FeedforwardAblationPPORunnerCfg",
     },
 )
+
+gym.register(
+    id="Isaac-Uav-Rendezvous-M7A-GRU-v0",
+    entry_point=f"{__name__}.uav_rendezvous_m7a_env:UavRendezvousM7AEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.uav_rendezvous_m7a_env_cfg:UavRendezvousM7AEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:UavRendezvousM7AGRUPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="Isaac-Uav-Rendezvous-M7A-Feedforward-v0",
+    entry_point=f"{__name__}.uav_rendezvous_m7a_env:UavRendezvousM7AEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.uav_rendezvous_m7a_env_cfg:UavRendezvousM7AEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:UavRendezvousM7AFeedforwardPPORunnerCfg",
+    },
+)

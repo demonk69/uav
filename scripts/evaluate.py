@@ -34,6 +34,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Cycle modes by env id on reset for balanced per-mode episode counts.",
     )
     parser.add_argument(
+        "--m7a_stage",
+        type=str,
+        default=None,
+        help="Override M7A observation-degradation stage: 0, 1, 2, 3, or 4.",
+    )
+    parser.add_argument(
         "--policy",
         choices=("trained", "zero", "random", "oracle"),
         default="trained",
@@ -66,6 +72,7 @@ from tensordict import TensorDict  # noqa: E402
 import uav_rendezvous_rl.tasks  # noqa: E402, F401
 from uav_rendezvous_rl.controllers import clamp_vector_norm  # noqa: E402
 from uav_rendezvous_rl.mdp import raw_action_from_velocity_command  # noqa: E402
+from uav_rendezvous_rl.observations import make_m7a_observation_cfg  # noqa: E402
 from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper  # noqa: E402
 from isaaclab_tasks.utils import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg  # noqa: E402
 
@@ -104,6 +111,14 @@ def _configure_target_motion(env_cfg: object, mode_name: str | None, force_cycle
         validation=replace(motion_cfg.validation, mode_probabilities=probabilities),
         test=replace(motion_cfg.test, mode_probabilities=probabilities),
     )
+
+
+def _configure_m7a_observation(env_cfg: object, stage: str | None) -> None:
+    if stage is None:
+        return
+    if not hasattr(env_cfg, "observation_degradation"):
+        raise RuntimeError("--m7a_stage can only be used with M7A tasks.")
+    env_cfg.observation_degradation = make_m7a_observation_cfg(stage)
 
 
 def _resolve_checkpoint(agent_cfg: Any) -> str:
@@ -300,6 +315,8 @@ def _lightweight_diagnostics(task: Any) -> dict[str, Any]:
 
 
 def _episode_history(task: Any, clear: bool) -> list[dict[str, Any]]:
+    if hasattr(task, "get_m7a_episode_history"):
+        return task.get_m7a_episode_history(clear=clear)
     if hasattr(task, "get_m6_episode_history"):
         return task.get_m6_episode_history(clear=clear)
     return task.get_m5_episode_history(clear=clear)
@@ -329,6 +346,7 @@ def main() -> None:
     )
     env_cfg.target_motion_split = args_cli.split
     _configure_target_motion(env_cfg, args_cli.target_motion_mode, args_cli.force_mode_cycle_on_reset)
+    _configure_m7a_observation(env_cfg, args_cli.m7a_stage)
     agent_cfg = load_cfg_from_registry(args_cli.task, "rsl_rl_cfg_entry_point")
     if args_cli.seed is not None:
         env_cfg.seed = args_cli.seed
@@ -409,6 +427,7 @@ def main() -> None:
             "seed": int(agent_cfg.seed),
             "split": args_cli.split,
             "target_motion_mode": args_cli.target_motion_mode,
+            "m7a_stage": args_cli.m7a_stage,
             "force_mode_cycle_on_reset": bool(args_cli.force_mode_cycle_on_reset),
             "num_envs": int(args_cli.num_envs),
             "episodes": int(args_cli.episodes),

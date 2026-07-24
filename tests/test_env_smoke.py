@@ -44,6 +44,13 @@ def test_required_m5_files_exist() -> None:
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_rl_env_cfg.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_recurrent_env.py",
         "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_recurrent_env_cfg.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_m7a_env.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_m7a_env_cfg.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/observations/__init__.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/observations/configs.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/observations/history_buffer.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/observations/corruption.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/observations/pipeline.py",
         "scripts/audit_m2_runtime.py",
         "scripts/audit_m3_motion_runtime.py",
         "scripts/audit_m4_baseline_runtime.py",
@@ -51,18 +58,22 @@ def test_required_m5_files_exist() -> None:
         "scripts/audit_m6_recurrent_runtime.py",
         "scripts/audit_m6_history_sensitivity.py",
         "scripts/audit_m6_checkpoint_resume.py",
+        "scripts/audit_m7_observation_pipeline.py",
+        "scripts/audit_m7_pomdp_comparison.py",
     ]
 
     for relative_path in required_files:
         assert (PROJECT_ROOT / relative_path).is_file(), relative_path
 
 
-def test_milestone_state_authorizes_only_m6_work() -> None:
+def test_milestone_state_authorizes_only_m7a_work() -> None:
     text = (PROJECT_ROOT / "docs/milestone_state.md").read_text(encoding="utf-8")
 
-    assert "Current milestone: M6" in text
-    assert "Next milestone: M7, not authorized" in text
-    assert "独立Recurrent RL任务" in text
-    assert "GRU Recurrent PPO" in text
-    assert "公平前馈ablation对照" in text
+    assert "Current milestone: M7" in text
+    assert "Current sub-milestone: M7A" in text
+    assert "Status: in_progress" in text
+    assert "Next sub-milestone: M7B, not authorized" in text
+    assert "Controlled observation delay" in text
+    assert "Observation dropout" in text
+    assert "M7B and M7C are not authorized" in text
     assert "Crazyflie" in text
