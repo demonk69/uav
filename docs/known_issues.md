@@ -75,3 +75,22 @@ M6 non-blocking issues:
 2. History sensitivity uses synthetic observations and verifies mechanism only.
 3. Per-mode cycling associates environment ID with mode, but statistical coverage is sufficient.
 4. One Isaac Sim startup-stage segmentation fault occurred and was not reproduced in subsequent formal runs.
+
+## M7A History-Value Limitation
+
+M7A verified controlled partial-observation infrastructure, but did not demonstrate a history-value performance advantage for GRU over the fair feedforward baseline.
+
+Formal validation used independent `scripts/evaluate.py` processes. Feedforward outperformed GRU on all formal M7A stages:
+
+- Stage 0: both success `1.0000`, collision `0.0000`; feedforward had better return, offset p95, relative-speed p95, and convergence.
+- Stage 1: both success `1.0000`, collision `0.0000`; feedforward had better return, offset p95, and relative-speed p95.
+- Stage 2: GRU success `0.8438`, feedforward success `1.0000`, collision `0.0000` for both; feedforward had better return, offset p95, relative-speed p95, and convergence.
+
+Therefore M7A proves that the controlled observation-degradation pipeline is functional and causal, but it must not be described as proving a GRU/history-value performance advantage.
+
+M7A non-blocking issues:
+
+1. `scripts/audit_m7_pomdp_comparison.py` exposed an Isaac same-process multi-environment lifecycle issue. Formal metrics come from independent `scripts/evaluate.py` processes and are the accepted metric source.
+2. Some registration and configuration tests are string-based and do not fully instantiate configuration classes.
+3. No standalone unit test exercises combined delay, sample-and-hold, dropout, and noise together. Runtime Stage 3/4 pipeline audits covered combined infrastructure stability.
+4. Stage 0 validation used 64 episodes, while Stages 1 and 2 used 512 episodes. Stage 0 statistical confidence is lower.

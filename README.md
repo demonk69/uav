@@ -12,7 +12,9 @@ M5 adds an accepted independent feedforward RL task, `Isaac-Uav-Rendezvous-RL-v0
 
 M5 has passed user acceptance with independent audit result `ACCEPT M5 WITH NON-BLOCKING ISSUES`. Final M5 verification details are in `docs/m5_verification.md`; the archived audit is in `docs/m5_independent_audit.md`.
 
-M6 has passed user acceptance with independent audit result `ACCEPT M6 WITH MAJOR LIMITATION`. It adds independent recurrent task `Isaac-Uav-Rendezvous-Recurrent-v0`, a fair feedforward ablation task `Isaac-Uav-Rendezvous-M6-Feedforward-Ablation-v0`, a GRU `ActorCriticRecurrent` PPO config, recurrent-safe play/evaluate reset handling, hidden-state audits, a mixed four-mode target-motion distribution, and checkpoint save/load/resume verification. Final M6 verification details are in `docs/m6_verification.md`; the archived audit is in `docs/m6_independent_audit.md`. M6 did not add noise, delay, wind, dropped observations, or visual-estimation error. M7 is not authorized.
+M6 has passed user acceptance with independent audit result `ACCEPT M6 WITH MAJOR LIMITATION`. It adds independent recurrent task `Isaac-Uav-Rendezvous-Recurrent-v0`, a fair feedforward ablation task `Isaac-Uav-Rendezvous-M6-Feedforward-Ablation-v0`, a GRU `ActorCriticRecurrent` PPO config, recurrent-safe play/evaluate reset handling, hidden-state audits, a mixed four-mode target-motion distribution, and checkpoint save/load/resume verification. Final M6 verification details are in `docs/m6_verification.md`; the archived audit is in `docs/m6_independent_audit.md`. M6 did not add noise, delay, wind, dropped observations, or visual-estimation error.
+
+M7A has passed user acceptance with independent audit result `ACCEPT M7A WITH MAJOR LIMITATION`. It adds independent controlled partial-observation tasks `Isaac-Uav-Rendezvous-M7A-GRU-v0` and `Isaac-Uav-Rendezvous-M7A-Feedforward-v0`, strictly causal observation degradation infrastructure, and matched Stage 0/1/2 GRU-vs-feedforward validation. The observation-degradation infrastructure is functional, but no history-value performance advantage was demonstrated; feedforward outperformed GRU on all formal M7A stages while preserving zero collision risk. Final M7A verification details are in `docs/m7a_verification.md`; the reconstructed independent-auditor copy is archived in `docs/m7a_independent_audit.md`; snapshot recertification evidence is archived in `docs/m7a_snapshot_recertification.md`. M7B and M7C are not authorized.
 
 ## M5 Acceptance Summary
 
@@ -44,7 +46,22 @@ M6 has passed user acceptance with independent audit result `ACCEPT M6 WITH MAJO
 - Final mixed GRU checkpoint is local only and not tracked by Git: `logs/rsl_rl/uav_rendezvous_m6_gru/2026-07-22_23-56-05_m6_mixed_gru_300_seed42/model_299.pt`.
 - Final feedforward ablation checkpoint is local only and not tracked by Git: `logs/rsl_rl/uav_rendezvous_m6_feedforward_ablation/2026-07-23_00-11-43_m6_ff_ablation_300_seed42/model_299.pt`.
 - M6 recurrent training and hidden-state management are functional, but a measurable implicit-prediction advantage over the fair feedforward baseline was not demonstrated.
-- M7 remains unauthorized.
+- M7A is accepted with major limitation; M7B and M7C remain unauthorized.
+
+## M7A Verification Summary
+
+- M7A user acceptance result: `ACCEPT M7A WITH MAJOR LIMITATION`.
+- M7A tasks: `Isaac-Uav-Rendezvous-M7A-GRU-v0` and `Isaac-Uav-Rendezvous-M7A-Feedforward-v0`.
+- Actor observation remains 25D deployable and uses degraded relative position/velocity only; it does not receive truth substitutions, dropout masks, observation age, motion labels, generator parameters, future states, future commands, or trajectory schedules.
+- Degradation is strictly causal: current truth is pushed to history, then current or past samples are exposed through delay, sample-and-hold, dropout with last-valid hold, and zero-mean noise.
+- Full unit test suite passed during implementation: `95 passed`.
+- Stage 3 and Stage 4 infrastructure audits passed for observation-pipeline stability; no Stage 3/4 formal training was performed.
+- Formal metrics are from independent `scripts/evaluate.py` processes. `scripts/audit_m7_pomdp_comparison.py` is not used as a formal metric source due to an Isaac same-process lifecycle issue.
+- Stage 0 GRU vs FF: both success `1.0000`, collision `0.0000`; FF had better return, offset p95, relative-speed p95, and convergence.
+- Stage 1 GRU vs FF: both success `1.0000`, collision `0.0000`; FF had better return, offset p95, and relative-speed p95.
+- Stage 2 GRU vs FF: GRU success `0.8438`, FF success `1.0000`, collision `0.0000` for both; FF had better return, offset p95, relative-speed p95, and convergence.
+- M7A observation-degradation infrastructure is functional, but no history-value performance advantage was demonstrated.
+- M7B and M7C remain unauthorized.
 
 ## Task
 
@@ -54,6 +71,8 @@ Isaac-Uav-Rendezvous-Baseline-v0
 Isaac-Uav-Rendezvous-RL-v0
 Isaac-Uav-Rendezvous-Recurrent-v0
 Isaac-Uav-Rendezvous-M6-Feedforward-Ablation-v0
+Isaac-Uav-Rendezvous-M7A-GRU-v0
+Isaac-Uav-Rendezvous-M7A-Feedforward-v0
 ```
 
 ## Isaac Lab Entry

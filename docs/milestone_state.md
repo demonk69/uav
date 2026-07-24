@@ -2,8 +2,8 @@
 
 Current milestone: M7
 Current sub-milestone: M7A
-Status: in_progress
-Last completed milestone: M6
+Status: accepted_with_major_limitation
+Last completed milestone: M7A
 M4 accepted tag: m4-accepted
 M4 accepted commit: 36592b6a14cd1a00d6bb689b3a33d27fe610a3b1
 M5 implementation commit: 887bb20a3d5a44eac479fc451fab89aa18296b57
@@ -15,6 +15,10 @@ M6 accepted tag: m6-accepted
 M6 accepted commit: acc27beca2528db21fe1604118e448a87f7e298a
 M6 acceptance result: ACCEPT M6 WITH MAJOR LIMITATION
 M6 independent audit result: ACCEPT M6 WITH MAJOR LIMITATION
+M7A implementation commit: 348d0ba1782eedc61c692b5e0558dec04104abab
+M7A accepted tag: not created
+M7A acceptance result: ACCEPT M7A WITH MAJOR LIMITATION
+M7A independent audit result: ACCEPT M7A WITH MAJOR LIMITATION
 Next sub-milestone: M7B, not authorized
 
 ## M6 Acceptance Summary
@@ -40,7 +44,7 @@ Independent audit:
 docs/m6_independent_audit.md
 ```
 
-M7A has started after explicit user authorization. M7B and M7C are not authorized.
+M7A has passed user acceptance with major limitation. M7B and M7C are not authorized.
 
 ## M7A Authorization
 
@@ -208,16 +212,16 @@ logs/rsl_rl/uav_rendezvous_m6_feedforward_ablation/2026-07-23_00-11-43_m6_ff_abl
 
 M6 recurrent training and hidden-state management are functional, but a measurable implicit-prediction advantage over the fair feedforward baseline was not demonstrated.
 
-M6 is accepted with major limitation. At M6 acceptance time, M7 was not authorized; M7A has since been explicitly authorized and started on `feature/m7`.
+M6 is accepted with major limitation. M7A has since passed user acceptance with major limitation on `feature/m7`; M7B and M7C are not authorized.
 
 ## Next Milestone Guard
 
 - M5 has passed user acceptance.
 - M6 has passed user acceptance with major limitation.
-- M7A is authorized and in progress.
+- M7A has passed user acceptance with major limitation.
 - Do not enter M7B or M7C without explicit user confirmation.
 
-## M7A Progress
+## M7A Acceptance Summary
 
 - Implemented independent M7A GRU and feedforward tasks without modifying accepted M2 through M6 task IDs.
 - Implemented strictly causal observation degradation for Stage 0 through Stage 4 infrastructure.
@@ -226,11 +230,14 @@ M6 is accepted with major limitation. At M6 acceptance time, M7 was not authoriz
 - Stage 3 and Stage 4 M7A 10000-step observation pipeline audits passed.
 - Formal Stage 0, Stage 1, and Stage 2 GRU/feedforward training runs completed with matched 300-iteration budgets.
 - Matched validation results are recorded in `docs/m7a_verification.md`.
+- Independent audit result: `ACCEPT M7A WITH MAJOR LIMITATION`.
+- The archived independent audit is a reconstructed independent-auditor copy: `docs/m7a_independent_audit.md`.
+- Snapshot recertification evidence is archived in `docs/m7a_snapshot_recertification.md`.
 
-M7A conclusion so far:
+M7A final conclusion:
 
 ```text
-No M7A history-value performance advantage is demonstrated. Feedforward outperformed GRU on Stage 0, Stage 1, and Stage 2 matched validation while preserving zero collision risk.
+M7A observation-degradation infrastructure is functional, but no history-value performance advantage was demonstrated. Feedforward outperformed GRU on Stage 0, Stage 1, and Stage 2 matched validation while preserving zero collision risk.
 ```
 
 Residual M7A issue:
