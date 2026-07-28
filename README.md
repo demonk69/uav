@@ -1,6 +1,16 @@
 # UAV Rendezvous RL
 
-External Isaac Lab project for a staged non-contact UAV offset rendezvous task.
+External Isaac Lab project containing a frozen Legacy non-contact UAV offset-rendezvous program and a separately governed Predictive Intercept research program.
+
+## Current Program State
+
+The authoritative Legacy freeze baseline is annotated tag `m7b-accepted` at commit `fc2cb17315e7f6b2b8dee463db5ab73f931c938e`. The tag and `feature/m7b` branch are pushed to `origin`.
+
+Predictive Intercept development uses branch `feature/pi`, created directly from `m7b-accepted^{commit}`. PI0 is the only authorized stage and is limited to governance, repository reconciliation, task definition, information-boundary definition, dataset schema planning, and milestone/interface planning. PI1 through PI7 are not authorized for implementation.
+
+The planned independent package name is `uav_predictive_intercept` under `source/uav_predictive_intercept/`, but PI0 does not create that package or any implementation directories.
+
+Predictive Intercept is not a rename or continuation of M7B/M7C. It is a non-contact virtual-offset crossing task with a mandatory nonzero offset and an independent hard Target entity exclusion zone. See `docs/predictive_intercept_milestones.md` for the authoritative roadmap.
 
 M4 has passed user technical acceptance at tag `m4-accepted`. The original Direct task remains the M2/M3 regression task with stationary ego and no-op actions.
 
@@ -14,7 +24,9 @@ M5 has passed user acceptance with independent audit result `ACCEPT M5 WITH NON-
 
 M6 has passed user acceptance with independent audit result `ACCEPT M6 WITH MAJOR LIMITATION`. It adds independent recurrent task `Isaac-Uav-Rendezvous-Recurrent-v0`, a fair feedforward ablation task `Isaac-Uav-Rendezvous-M6-Feedforward-Ablation-v0`, a GRU `ActorCriticRecurrent` PPO config, recurrent-safe play/evaluate reset handling, hidden-state audits, a mixed four-mode target-motion distribution, and checkpoint save/load/resume verification. Final M6 verification details are in `docs/m6_verification.md`; the archived audit is in `docs/m6_independent_audit.md`. M6 did not add noise, delay, wind, dropped observations, or visual-estimation error.
 
-M7A has passed user acceptance with independent audit result `ACCEPT M7A WITH MAJOR LIMITATION`. It adds independent controlled partial-observation tasks `Isaac-Uav-Rendezvous-M7A-GRU-v0` and `Isaac-Uav-Rendezvous-M7A-Feedforward-v0`, strictly causal observation degradation infrastructure, and matched Stage 0/1/2 GRU-vs-feedforward validation. The observation-degradation infrastructure is functional, but no history-value performance advantage was demonstrated; feedforward outperformed GRU on all formal M7A stages while preserving zero collision risk. Final M7A verification details are in `docs/m7a_verification.md`; the reconstructed independent-auditor copy is archived in `docs/m7a_independent_audit.md`; snapshot recertification evidence is archived in `docs/m7a_snapshot_recertification.md`. M7B and M7C are not authorized.
+M7A has passed user acceptance with independent audit result `ACCEPT M7A WITH MAJOR LIMITATION`. It adds independent controlled partial-observation tasks `Isaac-Uav-Rendezvous-M7A-GRU-v0` and `Isaac-Uav-Rendezvous-M7A-Feedforward-v0`, strictly causal observation degradation infrastructure, and matched Stage 0/1/2 GRU-vs-feedforward validation. The observation-degradation infrastructure is functional, but no history-value performance advantage was demonstrated; feedforward outperformed GRU on all formal M7A stages while preserving zero collision risk. Final M7A verification details are in `docs/m7a_verification.md`; the reconstructed independent-auditor copy is archived in `docs/m7a_independent_audit.md`; snapshot recertification evidence is archived in `docs/m7a_snapshot_recertification.md`.
+
+M7B is frozen at `m7b-accepted`. It adds independent feedforward and GRU task registrations, simplified dynamics randomization, per-environment action-delay FIFO infrastructure, steady wind and gust infrastructure, a 25D deployable Actor contract, and a 65D current-time privileged Critic contract. S0 clean and S1 dynamics-only feedforward runs were independently accepted; S2 through S4 were not started. Final details are in `docs/m7b_verification.md`, `docs/m7b_g5_independent_audit.md`, and `docs/m7b_s1_independent_audit.md`.
 
 ## M5 Acceptance Summary
 
@@ -46,7 +58,7 @@ M7A has passed user acceptance with independent audit result `ACCEPT M7A WITH MA
 - Final mixed GRU checkpoint is local only and not tracked by Git: `logs/rsl_rl/uav_rendezvous_m6_gru/2026-07-22_23-56-05_m6_mixed_gru_300_seed42/model_299.pt`.
 - Final feedforward ablation checkpoint is local only and not tracked by Git: `logs/rsl_rl/uav_rendezvous_m6_feedforward_ablation/2026-07-23_00-11-43_m6_ff_ablation_300_seed42/model_299.pt`.
 - M6 recurrent training and hidden-state management are functional, but a measurable implicit-prediction advantage over the fair feedforward baseline was not demonstrated.
-- M7A is accepted with major limitation; M7B and M7C remain unauthorized.
+- M7A is accepted with major limitation; M7B is frozen at `m7b-accepted`; M7C was not entered.
 
 ## M7A Verification Summary
 
@@ -61,7 +73,7 @@ M7A has passed user acceptance with independent audit result `ACCEPT M7A WITH MA
 - Stage 1 GRU vs FF: both success `1.0000`, collision `0.0000`; FF had better return, offset p95, and relative-speed p95.
 - Stage 2 GRU vs FF: GRU success `0.8438`, FF success `1.0000`, collision `0.0000` for both; FF had better return, offset p95, relative-speed p95, and convergence.
 - M7A observation-degradation infrastructure is functional, but no history-value performance advantage was demonstrated.
-- M7B and M7C remain unauthorized.
+- M7B is frozen at `m7b-accepted`; M7C was not entered.
 
 ## Task
 
@@ -73,6 +85,8 @@ Isaac-Uav-Rendezvous-Recurrent-v0
 Isaac-Uav-Rendezvous-M6-Feedforward-Ablation-v0
 Isaac-Uav-Rendezvous-M7A-GRU-v0
 Isaac-Uav-Rendezvous-M7A-Feedforward-v0
+Isaac-Uav-Rendezvous-M7B-Feedforward-v0
+Isaac-Uav-Rendezvous-M7B-GRU-v0
 ```
 
 ## Isaac Lab Entry

@@ -1,13 +1,18 @@
 # Milestone State
 
-Current milestone: M7
-Current sub-milestone: M7B
-Status: in_progress
-Next executable stage: M7B-S1
-M7C authorization: not authorized
-Authoritative M7B execution order: M7B-S0 clean, M7B-S1 dynamics only, M7B-S2 control delay only, M7B-S3 wind only, M7B-S4 combined
-M7B-S1 status: completed; stop before M7B-S2 pending audit/user confirmation
-Last completed milestone: M7A
+Current program: Predictive Intercept
+Current milestone: PI0
+Status: in_progress; PI0 documentation complete, pending independent review
+Current branch: feature/pi
+Only authorized work: PI0 governance, repository reconciliation, and design documentation
+Next milestone: PI1, not authorized
+Legacy freeze tag: m7b-accepted
+Legacy freeze commit: fc2cb17315e7f6b2b8dee463db5ab73f931c938e
+Legacy freeze branch: feature/m7b
+Legacy remote state: feature/m7b and m7b-accepted pushed to origin
+PI branch base: m7b-accepted^{commit} = fc2cb17315e7f6b2b8dee463db5ab73f931c938e
+Last completed Legacy stage: M7B-S1 dynamics only
+Legacy stages not executed: M7B-S2, M7B-S3, M7B-S4, M7C
 M4 accepted tag: m4-accepted
 M4 accepted commit: 36592b6a14cd1a00d6bb689b3a33d27fe610a3b1
 M5 implementation commit: 887bb20a3d5a44eac479fc451fab89aa18296b57
@@ -27,9 +32,75 @@ M7B-G5 independent audit result: ACCEPT M7B-G5 WITH NON-BLOCKING ISSUES
 M7B-S0 checkpoint SHA-256: 7254b343972ab30a27c48dcb7fd5c5a90079ef6be25c067ec92cc0679f32e5f8
 M7B-S1 checkpoint SHA-256: 2e159913068a795eef6b48924267b453876f547d6113cffc3c69efaac61de3dc
 Primary M7B policy baseline: feedforward
-Secondary ablation: GRU
+Secondary M7B ablation: GRU
 
-## M6 Acceptance Summary
+## Predictive Intercept Authorization
+
+- PI0 is the only authorized milestone.
+- PI0 changes are restricted to `AGENTS.md`, `README.md`, `docs/milestone_state.md`, and the six PI0 documents listed in `AGENTS.md`.
+- PI0 must not modify `source/`, create `source/uav_predictive_intercept/`, implement Oracle/student code, create training scripts, run training, generate a formal dataset, or enter PI1.
+- The planned package name is `uav_predictive_intercept`; actual package creation requires separate PI1 authorization.
+- PI0 completion must stop for independent read-only review and user acceptance.
+
+## Legacy Freeze
+
+- `m7a-accepted` at `555daeb598ef633f7e2dbf8b86a12148cd48cf34` remains the historical M7A baseline.
+- The final Legacy baseline for Predictive Intercept is `m7b-accepted` at `fc2cb17315e7f6b2b8dee463db5ab73f931c938e`.
+- The M7B freeze commit contains exactly the 38 files approved by `/tmp/m7b_freeze_audit.md` and excludes logs/checkpoints.
+- M7B-S0 and M7B-S1 are accepted. M7B-S2 through M7B-S4 were not started and are not part of the freeze claim.
+- All nine registered Legacy task IDs are frozen against behavior changes during Predictive Intercept work.
+
+## PI0 Implementation Snapshot
+
+Authorized existing files updated:
+
+```text
+AGENTS.md
+README.md
+docs/milestone_state.md
+```
+
+Authorized documents created:
+
+```text
+docs/repository_reconciliation.md
+docs/predictive_intercept_task_definition.md
+docs/teacher_student_architecture.md
+docs/predictive_intercept_information_boundary.md
+docs/predictive_intercept_dataset_schema.md
+docs/predictive_intercept_milestones.md
+```
+
+PI0 self-test evidence:
+
+- Changed-file scope contains exactly the three authorized existing files and six authorized new documents.
+- `source/` has no difference from `m7b-accepted^{commit}` and `source/uav_predictive_intercept/` does not exist.
+- `git diff --check` passes.
+- Full frozen Legacy test suite passes: `134 passed in 1.85s`.
+- The first Legacy test run had one governance-string failure because a frozen test asserted the M7B-era milestone header. No Legacy test was modified; a clearly non-authoritative historical fixture preserves those literal strings, and the full rerun passed.
+- No training, formal dataset generation, PI1 interface implementation, or PI1 entry occurred.
+
+PI0 self-tests are not independent acceptance. No PI0 commit, tag, merge, or push is authorized before independent PI0 review and a separate user decision.
+
+## Legacy Historical Record
+
+The remainder of this file records the completed Legacy program. References to earlier authorization states are historical and do not authorize additional M7B or M7C work.
+
+### Frozen Legacy control-plane test fixture
+
+The frozen Legacy suite asserts the following literal M7B-era control strings. They are retained as a non-authoritative historical fixture so PI0 can change the active governance header without modifying frozen Legacy tests. They do not authorize M7B-S2, M7C, or any other Legacy work.
+
+```text
+Current milestone: M7
+Current sub-milestone: M7B
+Status: in_progress
+Next executable stage: M7B-S1
+M7C authorization: not authorized
+Authoritative M7B execution order: M7B-S0 clean, M7B-S1 dynamics only
+Current executable stage: M7B-S1 dynamics only
+```
+
+### M6 Acceptance Summary
 
 M6 accepted capabilities:
 
@@ -126,7 +197,7 @@ Forbidden in M7A:
 - The original `Isaac-Uav-Rendezvous-Baseline-v0` task must remain the M4 deterministic baseline and must not be affected by RL actions.
 - The existing `Isaac-Uav-Rendezvous-RL-v0` task must remain the M5 feedforward PPO task and must not be converted into a recurrent task.
 - M7A starts from `m6-accepted` on local branch `feature/m7` after explicit user authorization.
-- Historical pre-M7B note: M7B was not authorized when this note was written; M7B is now authorized and in progress. M7C is not authorized.
+- Historical pre-M7B note: M7B was not authorized when this note was written. M7B was later completed through S1 and frozen at `m7b-accepted`; M7C was not entered.
 
 ## M5 Implementation Snapshot
 
@@ -220,17 +291,17 @@ logs/rsl_rl/uav_rendezvous_m6_feedforward_ablation/2026-07-23_00-11-43_m6_ff_abl
 
 M6 recurrent training and hidden-state management are functional, but a measurable implicit-prediction advantage over the fair feedforward baseline was not demonstrated.
 
-M6 is accepted with major limitation. M7A has since passed user acceptance with major limitation on `feature/m7`. Historical note: M7B was not authorized at that time; M7B is now authorized and in progress. M7C is not authorized.
+M6 is accepted with major limitation. M7A later passed user acceptance with major limitation on `feature/m7`. M7B later completed through S1 and was frozen at `m7b-accepted`; M7C was not entered.
 
-## Next Milestone Guard
+## Historical M7B Entry Guard
 
 - M5 has passed user acceptance.
 - M6 has passed user acceptance with major limitation.
 - M7A has passed user acceptance with major limitation.
-- M7B is authorized and in progress.
-- Do not enter M7C without explicit user confirmation.
+- M7B was authorized, completed through S1, and is now frozen.
+- M7C was not entered.
 
-## M7B Authorization
+## Historical M7B Authorization
 
 Authorized M7B work:
 
@@ -369,9 +440,9 @@ Independent G5 audit result:
 docs/m7b_g5_independent_audit.md: ACCEPT M7B-G5 WITH NON-BLOCKING ISSUES
 ```
 
-### M7B-S1 locked execution protocol
+### Historical M7B-S1 locked execution protocol
 
-- Current executable stage: M7B-S1 dynamics only.
+- Executed stage: M7B-S1 dynamics only.
 - Task: `Isaac-Uav-Rendezvous-M7B-Feedforward-v0`.
 - Policy: feedforward PPO only; no GRU training in this run.
 - Training source: from scratch; do not resume the M7B-S0 checkpoint.
