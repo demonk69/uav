@@ -40,6 +40,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Override M7A observation-degradation stage: 0, 1, 2, 3, or 4.",
     )
     parser.add_argument(
+        "--m7b_stage",
+        type=str,
+        default=None,
+        help="Override M7B dynamics-robustness stage: 0, 1, 2, 3, or 4.",
+    )
+    parser.add_argument(
         "--policy",
         choices=("trained", "zero", "random", "oracle"),
         default="trained",
@@ -119,6 +125,56 @@ def _configure_m7a_observation(env_cfg: object, stage: str | None) -> None:
     if not hasattr(env_cfg, "observation_degradation"):
         raise RuntimeError("--m7a_stage can only be used with M7A tasks.")
     env_cfg.observation_degradation = make_m7a_observation_cfg(stage)
+
+
+def _configure_m7b_stage(env_cfg: object, stage: str | None) -> None:
+    if stage is None:
+        return
+    if not hasattr(env_cfg, "m7b_dynamics"):
+        raise RuntimeError("--m7b_stage can only be used with M7B tasks.")
+    stage_id = str(stage).strip()
+    if stage_id == "0":
+        env_cfg.tau_velocity_scale = 1.0
+        env_cfg.acceleration_limit_scale = 1.0
+        env_cfg.speed_limit_scale = 1.0
+        env_cfg.linear_drag = 0.0
+        env_cfg.action_delay_steps = 0
+        env_cfg.steady_wind_max_magnitude = 0.0
+        env_cfg.gust_max_magnitude = 0.0
+    elif stage_id == "1":
+        env_cfg.tau_velocity_scale = 1.50
+        env_cfg.acceleration_limit_scale = 1.20
+        env_cfg.speed_limit_scale = 1.10
+        env_cfg.linear_drag = 0.15
+        env_cfg.action_delay_steps = 0
+        env_cfg.steady_wind_max_magnitude = 0.0
+        env_cfg.gust_max_magnitude = 0.0
+    elif stage_id == "2":
+        env_cfg.tau_velocity_scale = 1.0
+        env_cfg.acceleration_limit_scale = 1.0
+        env_cfg.speed_limit_scale = 1.0
+        env_cfg.linear_drag = 0.0
+        env_cfg.action_delay_steps = 3
+        env_cfg.steady_wind_max_magnitude = 0.0
+        env_cfg.gust_max_magnitude = 0.0
+    elif stage_id == "3":
+        env_cfg.tau_velocity_scale = 1.0
+        env_cfg.acceleration_limit_scale = 1.0
+        env_cfg.speed_limit_scale = 1.0
+        env_cfg.linear_drag = 0.0
+        env_cfg.action_delay_steps = 0
+        env_cfg.steady_wind_max_magnitude = 0.20
+        env_cfg.gust_max_magnitude = 0.15
+    elif stage_id == "4":
+        env_cfg.tau_velocity_scale = 1.50
+        env_cfg.acceleration_limit_scale = 1.20
+        env_cfg.speed_limit_scale = 1.10
+        env_cfg.linear_drag = 0.15
+        env_cfg.action_delay_steps = 3
+        env_cfg.steady_wind_max_magnitude = 0.20
+        env_cfg.gust_max_magnitude = 0.15
+    else:
+        raise RuntimeError(f"Unknown M7B stage: {stage}. Expected 0, 1, 2, 3, or 4.")
 
 
 def _resolve_checkpoint(agent_cfg: Any) -> str:
@@ -211,6 +267,9 @@ def _summarize(history: list[dict[str, Any]], expected_count: int) -> dict[str, 
         "acceleration_saturation_fraction": _stats(
             [float(episode["acceleration_saturation_fraction"]) for episode in selected]
         ),
+        "total_safety_saturation_fraction": _stats(
+            [float(episode.get("total_safety_saturation_fraction", 0.0)) for episode in selected]
+        ),
         "episode_reward_sum": _stats([float(episode["episode_reward_sum"]) for episode in selected]),
     }
 
@@ -274,6 +333,8 @@ def _actions_for_policy(
 
 
 def _lightweight_diagnostics(task: Any) -> dict[str, Any]:
+    if hasattr(task, "get_m7b_diagnostics"):
+        return task.get_m7b_diagnostics()
     policy_obs = task.obs_buf["policy"]
     critic_obs = task.obs_buf["critic"]
     tensors = (
@@ -315,6 +376,8 @@ def _lightweight_diagnostics(task: Any) -> dict[str, Any]:
 
 
 def _episode_history(task: Any, clear: bool) -> list[dict[str, Any]]:
+    if hasattr(task, "get_m7b_episode_history"):
+        return task.get_m7b_episode_history(clear=clear)
     if hasattr(task, "get_m7a_episode_history"):
         return task.get_m7a_episode_history(clear=clear)
     if hasattr(task, "get_m6_episode_history"):
@@ -347,6 +410,7 @@ def main() -> None:
     env_cfg.target_motion_split = args_cli.split
     _configure_target_motion(env_cfg, args_cli.target_motion_mode, args_cli.force_mode_cycle_on_reset)
     _configure_m7a_observation(env_cfg, args_cli.m7a_stage)
+    _configure_m7b_stage(env_cfg, args_cli.m7b_stage)
     agent_cfg = load_cfg_from_registry(args_cli.task, "rsl_rl_cfg_entry_point")
     if args_cli.seed is not None:
         env_cfg.seed = args_cli.seed
@@ -428,6 +492,7 @@ def main() -> None:
             "split": args_cli.split,
             "target_motion_mode": args_cli.target_motion_mode,
             "m7a_stage": args_cli.m7a_stage,
+            "m7b_stage": args_cli.m7b_stage,
             "force_mode_cycle_on_reset": bool(args_cli.force_mode_cycle_on_reset),
             "num_envs": int(args_cli.num_envs),
             "episodes": int(args_cli.episodes),

@@ -11,26 +11,23 @@ import os
 from typing import Any
 
 from isaaclab.app import AppLauncher
+import sys
+
+
+args_cli_deprecated = None
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="M7A GRU/feedforward POMDP comparison.")
-    parser.add_argument("--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O.")
-    parser.add_argument("--num_envs", type=int, default=64, help="Number of environments to simulate.")
-    parser.add_argument("--episodes", type=int, default=8, help="Episodes per environment.")
-    parser.add_argument("--seed", type=int, default=4242, help="Validation seed.")
-    parser.add_argument("--split", choices=("train", "validation", "test"), default="validation")
-    parser.add_argument("--m7a_stage", type=str, default="0", help="M7A observation stage.")
-    parser.add_argument("--gru_checkpoint", type=str, required=True, help="Trained GRU checkpoint.")
-    parser.add_argument("--feedforward_checkpoint", type=str, required=True, help="Trained feedforward checkpoint.")
-    parser.add_argument("--target_motion_mode", choices=("Mixed", "ConstantVelocity", "ConstantAcceleration", "ConstantTurn", "PiecewiseAcceleration"), default="Mixed")
-    AppLauncher.add_app_launcher_args(parser)
     return parser
 
 
 args_cli = _build_parser().parse_args()
-app_launcher = AppLauncher(args_cli)
-simulation_app = app_launcher.app
+print("ERROR: scripts/audit_m7_pomdp_comparison.py is deprecated.", file=sys.stderr)
+print("ERROR: Same-process Isaac multi-environment lifecycle results are not trusted for formal metrics.", file=sys.stderr)
+print("ERROR: Use scripts/evaluate.py for formal evaluation.", file=sys.stderr)
+print("ERROR: See docs/m7b_experiment_plan.md for M7B evaluation procedures.", file=sys.stderr)
+sys.exit(1)
 
 import gymnasium as gym  # noqa: E402
 import torch  # noqa: E402

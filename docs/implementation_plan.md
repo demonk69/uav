@@ -423,6 +423,8 @@ Acceptance criteria:
 
 ### Milestone 7: Curriculum And Robustness
 
+This Stage 1-9 table is an early project-level roadmap. Current M7B execution uses the authorized M7B sequence recorded in `docs/milestone_state.md` and the verification/protocol records in `docs/m7b_verification.md`: M7B-S0 clean, M7B-S1 dynamics only, M7B-S2 control delay only, M7B-S3 wind only, and M7B-S4 combined.
+
 Acceptance criteria:
 
 | Stage | Added difficulty |

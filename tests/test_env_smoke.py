@@ -60,20 +60,40 @@ def test_required_m5_files_exist() -> None:
         "scripts/audit_m6_checkpoint_resume.py",
         "scripts/audit_m7_observation_pipeline.py",
         "scripts/audit_m7_pomdp_comparison.py",
+        "scripts/audit_m7b_dynamics.py",
+        "scripts/evaluate_m7b_robustness.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/dynamics/__init__.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/dynamics/stateless_rng.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/dynamics/action_delay.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/dynamics/m7b.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/dynamics/wind.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_m7b_env.py",
+        "source/uav_rendezvous_rl/uav_rendezvous_rl/tasks/direct/uav_rendezvous_m7b_env_cfg.py",
+        "tests/test_m7b_action_delay.py",
+        "tests/test_m7b_actor_isolation.py",
+        "tests/test_m7b_critic_layout.py",
+        "tests/test_m7b_dynamics_equation.py",
+        "tests/test_m7b_fair_ablation.py",
+        "tests/test_m7b_noncontact_objective.py",
+        "tests/test_m7b_parameter_sampling.py",
+        "tests/test_m7b_partial_reset.py",
+        "tests/test_m7b_rng_reproducibility.py",
+        "tests/test_m7b_task_registration.py",
+        "tests/test_m7b_wind_process.py",
     ]
 
     for relative_path in required_files:
         assert (PROJECT_ROOT / relative_path).is_file(), relative_path
 
 
-def test_milestone_state_authorizes_only_m7a_work() -> None:
+def test_milestone_state_authorizes_m7b_s1_only() -> None:
     text = (PROJECT_ROOT / "docs/milestone_state.md").read_text(encoding="utf-8")
 
     assert "Current milestone: M7" in text
-    assert "Current sub-milestone: M7A" in text
+    assert "Current sub-milestone: M7B" in text
     assert "Status: in_progress" in text
-    assert "Next sub-milestone: M7B, not authorized" in text
-    assert "Controlled observation delay" in text
-    assert "Observation dropout" in text
-    assert "M7B and M7C are not authorized" in text
+    assert "Next executable stage: M7B-S1" in text
+    assert "M7C authorization: not authorized" in text
+    assert "Authoritative M7B execution order: M7B-S0 clean, M7B-S1 dynamics only" in text
+    assert "Current executable stage: M7B-S1 dynamics only" in text
     assert "Crazyflie" in text

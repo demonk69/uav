@@ -94,3 +94,11 @@ M7A non-blocking issues:
 2. Some registration and configuration tests are string-based and do not fully instantiate configuration classes.
 3. No standalone unit test exercises combined delay, sample-and-hold, dropout, and noise together. Runtime Stage 3/4 pipeline audits covered combined infrastructure stability.
 4. Stage 0 validation used 64 episodes, while Stages 1 and 2 used 512 episodes. Stage 0 statistical confidence is lower.
+
+## M7B G5 Independent Audit Non-Blocking Issues
+
+`docs/m7b_g5_independent_audit.md` accepted M7B-G5 with non-blocking issues. The contradictory current-status wording in `docs/milestone_state.md` was corrected before M7B-S1 execution, and the exact M7A compact GRU seed `43` retry command was added to the M7B verification records.
+
+Isaac startup-stage segmentation faults were observed during M7B audit work: one on the first M7B GRU S0 runtime-audit attempt, one on the first compact M7A GRU observation-pipeline regression attempt, and one on the first M7B-S1 10000-step runtime-audit attempt. They occurred before project environment initialization or before the project audit report was produced, passed on retry, and did not require modifying Isaac Lab, Isaac Sim, system dependencies, or the NVIDIA driver.
+
+S1 gates were pre-registered before S1 execution in `docs/m7b_verification.md`. Gates for later M7B-S2 and M7B-S3 progression must likewise be registered before those stages are run.

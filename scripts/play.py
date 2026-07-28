@@ -22,6 +22,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--load_run", type=str, default=".*", help="Run directory regex when checkpoint is omitted.")
     parser.add_argument("--load_checkpoint", type=str, default="model_.*.pt", help="Checkpoint regex when omitted.")
     parser.add_argument("--steps", type=int, default=1000, help="Finite playback steps before exiting.")
+    parser.add_argument(
+        "--m7b_stage",
+        type=str,
+        default=None,
+        help="Override M7B dynamics-robustness stage: 0, 1, 2, 3, or 4.",
+    )
     parser.add_argument("--real_time", action="store_true", default=False, help="Sleep to approximate real-time playback.")
     parser.add_argument(
         "--audit_hidden_state",
@@ -94,6 +100,56 @@ def _clone_obs_dict(obs_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor
     return {key: value.detach().clone() for key, value in obs_dict.items()}
 
 
+def _configure_m7b_stage(env_cfg: object, stage: str | None) -> None:
+    if stage is None:
+        return
+    if not hasattr(env_cfg, "m7b_dynamics"):
+        raise RuntimeError("--m7b_stage can only be used with M7B tasks.")
+    stage_id = str(stage).strip()
+    if stage_id == "0":
+        env_cfg.tau_velocity_scale = 1.0
+        env_cfg.acceleration_limit_scale = 1.0
+        env_cfg.speed_limit_scale = 1.0
+        env_cfg.linear_drag = 0.0
+        env_cfg.action_delay_steps = 0
+        env_cfg.steady_wind_max_magnitude = 0.0
+        env_cfg.gust_max_magnitude = 0.0
+    elif stage_id == "1":
+        env_cfg.tau_velocity_scale = 1.50
+        env_cfg.acceleration_limit_scale = 1.20
+        env_cfg.speed_limit_scale = 1.10
+        env_cfg.linear_drag = 0.15
+        env_cfg.action_delay_steps = 0
+        env_cfg.steady_wind_max_magnitude = 0.0
+        env_cfg.gust_max_magnitude = 0.0
+    elif stage_id == "2":
+        env_cfg.tau_velocity_scale = 1.0
+        env_cfg.acceleration_limit_scale = 1.0
+        env_cfg.speed_limit_scale = 1.0
+        env_cfg.linear_drag = 0.0
+        env_cfg.action_delay_steps = 3
+        env_cfg.steady_wind_max_magnitude = 0.0
+        env_cfg.gust_max_magnitude = 0.0
+    elif stage_id == "3":
+        env_cfg.tau_velocity_scale = 1.0
+        env_cfg.acceleration_limit_scale = 1.0
+        env_cfg.speed_limit_scale = 1.0
+        env_cfg.linear_drag = 0.0
+        env_cfg.action_delay_steps = 0
+        env_cfg.steady_wind_max_magnitude = 0.20
+        env_cfg.gust_max_magnitude = 0.15
+    elif stage_id == "4":
+        env_cfg.tau_velocity_scale = 1.50
+        env_cfg.acceleration_limit_scale = 1.20
+        env_cfg.speed_limit_scale = 1.10
+        env_cfg.linear_drag = 0.15
+        env_cfg.action_delay_steps = 3
+        env_cfg.steady_wind_max_magnitude = 0.20
+        env_cfg.gust_max_magnitude = 0.15
+    else:
+        raise RuntimeError(f"Unknown M7B stage: {stage}. Expected 0, 1, 2, 3, or 4.")
+
+
 def _assert_recurrent_hidden_reset(policy_nn: Any, obs_dict: dict[str, torch.Tensor]) -> None:
     if not bool(getattr(policy_nn, "is_recurrent", False)):
         print("[INFO] Hidden-state audit skipped for feedforward policy.", flush=True)
@@ -148,6 +204,7 @@ def main() -> None:
     else:
         env_cfg.seed = agent_cfg.seed
     agent_cfg.device = device
+    _configure_m7b_stage(env_cfg, args_cli.m7b_stage)
     checkpoint = _resolve_checkpoint(agent_cfg)
     env_cfg.log_dir = os.path.dirname(checkpoint)
 

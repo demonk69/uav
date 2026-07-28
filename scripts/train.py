@@ -39,6 +39,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Override M7A observation-degradation stage: 0, 1, 2, 3, or 4.",
     )
+    parser.add_argument(
+        "--m7b_stage",
+        type=str,
+        default=None,
+        help="Override M7B dynamics-robustness stage: 0, 1, 2, 3, or 4.",
+    )
     parser.add_argument("--run_name", type=str, default=None, help="Optional run-name suffix.")
     parser.add_argument("--resume", action="store_true", default=False, help="Resume from a previous run.")
     parser.add_argument("--load_run", type=str, default=None, help="Run directory regex for resume.")
@@ -103,6 +109,56 @@ def _configure_m7a_observation(env_cfg: object, stage: str | None) -> None:
     env_cfg.observation_degradation = make_m7a_observation_cfg(stage)
 
 
+def _configure_m7b_stage(env_cfg: object, stage: str | None) -> None:
+    if stage is None:
+        return
+    if not hasattr(env_cfg, "m7b_dynamics"):
+        raise RuntimeError("--m7b_stage can only be used with M7B tasks.")
+    stage_id = str(stage).strip()
+    if stage_id == "0":
+        env_cfg.tau_velocity_scale = 1.0
+        env_cfg.acceleration_limit_scale = 1.0
+        env_cfg.speed_limit_scale = 1.0
+        env_cfg.linear_drag = 0.0
+        env_cfg.action_delay_steps = 0
+        env_cfg.steady_wind_max_magnitude = 0.0
+        env_cfg.gust_max_magnitude = 0.0
+    elif stage_id == "1":
+        env_cfg.tau_velocity_scale = 1.50
+        env_cfg.acceleration_limit_scale = 1.20
+        env_cfg.speed_limit_scale = 1.10
+        env_cfg.linear_drag = 0.15
+        env_cfg.action_delay_steps = 0
+        env_cfg.steady_wind_max_magnitude = 0.0
+        env_cfg.gust_max_magnitude = 0.0
+    elif stage_id == "2":
+        env_cfg.tau_velocity_scale = 1.0
+        env_cfg.acceleration_limit_scale = 1.0
+        env_cfg.speed_limit_scale = 1.0
+        env_cfg.linear_drag = 0.0
+        env_cfg.action_delay_steps = 3
+        env_cfg.steady_wind_max_magnitude = 0.0
+        env_cfg.gust_max_magnitude = 0.0
+    elif stage_id == "3":
+        env_cfg.tau_velocity_scale = 1.0
+        env_cfg.acceleration_limit_scale = 1.0
+        env_cfg.speed_limit_scale = 1.0
+        env_cfg.linear_drag = 0.0
+        env_cfg.action_delay_steps = 0
+        env_cfg.steady_wind_max_magnitude = 0.20
+        env_cfg.gust_max_magnitude = 0.15
+    elif stage_id == "4":
+        env_cfg.tau_velocity_scale = 1.50
+        env_cfg.acceleration_limit_scale = 1.20
+        env_cfg.speed_limit_scale = 1.10
+        env_cfg.linear_drag = 0.15
+        env_cfg.action_delay_steps = 3
+        env_cfg.steady_wind_max_magnitude = 0.20
+        env_cfg.gust_max_magnitude = 0.15
+    else:
+        raise RuntimeError(f"Unknown M7B stage: {stage}. Expected 0, 1, 2, 3, or 4.")
+
+
 def _hidden_norm(hidden_state: torch.Tensor | tuple[torch.Tensor, torch.Tensor] | None) -> float:
     if hidden_state is None:
         return 0.0
@@ -137,7 +193,16 @@ def _install_recurrent_hidden_norm_logging(runner: OnPolicyRunner) -> None:
 def _assert_recurrent_policy_contract(runner: OnPolicyRunner, task_id: str) -> None:
     policy = runner.alg.policy
     is_recurrent = bool(getattr(policy, "is_recurrent", False))
-    recurrent_task_ids = {"Isaac-Uav-Rendezvous-Recurrent-v0", "Isaac-Uav-Rendezvous-M7A-GRU-v0"}
+    recurrent_task_ids = {
+        "Isaac-Uav-Rendezvous-Recurrent-v0",
+        "Isaac-Uav-Rendezvous-M7A-GRU-v0",
+        "Isaac-Uav-Rendezvous-M7B-GRU-v0",
+    }
+    critic_dim_lookup = {
+        "Isaac-Uav-Rendezvous-Recurrent-v0": 57,
+        "Isaac-Uav-Rendezvous-M7A-GRU-v0": 57,
+        "Isaac-Uav-Rendezvous-M7B-GRU-v0": 65,
+    }
     if task_id not in recurrent_task_ids and not is_recurrent:
         return
 
@@ -152,8 +217,9 @@ def _assert_recurrent_policy_contract(runner: OnPolicyRunner, task_id: str) -> N
     actor_input_dim = int(policy.memory_a.rnn.input_size)
     critic_input_dim = int(policy.memory_c.rnn.input_size)
     action_dim = int(runner.env.num_actions)
+    expected_critic_dim = critic_dim_lookup.get(task_id, 57)
     _require(actor_input_dim == 25, f"Expected actor input dim 25, got {actor_input_dim}.")
-    _require(critic_input_dim == 57, f"Expected critic input dim 57, got {critic_input_dim}.")
+    _require(critic_input_dim == expected_critic_dim, f"Expected critic input dim {expected_critic_dim}, got {critic_input_dim}.")
     _require(action_dim == 3, f"Expected action dim 3, got {action_dim}.")
 
     print(f"[INFO] policy class: {policy_class}", flush=True)
@@ -188,6 +254,7 @@ def main() -> None:
     agent_cfg.device = device
     _configure_target_motion(env_cfg, args_cli.target_motion_mode, args_cli.force_mode_cycle_on_reset)
     _configure_m7a_observation(env_cfg, args_cli.m7a_stage)
+    _configure_m7b_stage(env_cfg, args_cli.m7b_stage)
     if args_cli.num_steps_per_env is not None:
         agent_cfg.num_steps_per_env = args_cli.num_steps_per_env
     if args_cli.max_iterations is not None:

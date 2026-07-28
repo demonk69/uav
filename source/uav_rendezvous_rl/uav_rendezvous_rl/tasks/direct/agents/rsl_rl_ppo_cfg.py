@@ -35,9 +35,80 @@ class UavRendezvousPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         use_clipped_value_loss=True,
         clip_param=0.2,
         entropy_coef=0.005,
-        num_learning_epochs=1,
-        num_mini_batches=1,
-        learning_rate=1.0e-3,
+        num_learning_epochs=4,
+        num_mini_batches=4,
+        learning_rate=3.0e-4,
+        schedule="adaptive",
+        gamma=0.99,
+        lam=0.95,
+        desired_kl=0.01,
+        max_grad_norm=1.0,
+    )
+
+
+@configclass
+class UavRendezvousM7BFeedforwardPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+    """M7B robust feedforward PPO config for dynamics randomization and wind."""
+
+    num_steps_per_env = 128
+    max_iterations = 300
+    save_interval = 25
+    experiment_name = "uav_rendezvous_m7b_feedforward"
+    clip_actions = None
+    obs_groups = {"policy": ["policy"], "critic": ["critic"]}
+    policy = RslRlPpoActorCriticCfg(
+        init_noise_std=0.5,
+        actor_obs_normalization=True,
+        critic_obs_normalization=True,
+        actor_hidden_dims=[128, 128],
+        critic_hidden_dims=[128, 128],
+        activation="elu",
+    )
+    algorithm = RslRlPpoAlgorithmCfg(
+        value_loss_coef=1.0,
+        use_clipped_value_loss=True,
+        clip_param=0.2,
+        entropy_coef=0.005,
+        num_learning_epochs=4,
+        num_mini_batches=4,
+        learning_rate=3.0e-4,
+        schedule="adaptive",
+        gamma=0.99,
+        lam=0.95,
+        desired_kl=0.01,
+        max_grad_norm=1.0,
+    )
+
+
+@configclass
+class UavRendezvousM7BGRUPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+    """M7B GRU PPO config for secondary ablation."""
+
+    num_steps_per_env = 128
+    max_iterations = 300
+    save_interval = 25
+    experiment_name = "uav_rendezvous_m7b_gru"
+    clip_actions = None
+    obs_groups = {"policy": ["policy"], "critic": ["critic"]}
+    policy = RslRlPpoActorCriticRecurrentCfg(
+        init_noise_std=0.5,
+        actor_obs_normalization=True,
+        critic_obs_normalization=True,
+        actor_hidden_dims=[128, 128],
+        critic_hidden_dims=[128, 128],
+        activation="elu",
+        rnn_type="gru",
+        rnn_hidden_dim=128,
+        rnn_num_layers=1,
+    )
+    algorithm = RslRlPpoAlgorithmCfg(
+        value_loss_coef=1.0,
+        use_clipped_value_loss=True,
+        clip_param=0.2,
+        entropy_coef=0.005,
+        num_learning_epochs=4,
+        num_mini_batches=4,
+        learning_rate=3.0e-4,
         schedule="adaptive",
         gamma=0.99,
         lam=0.95,

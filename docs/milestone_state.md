@@ -1,8 +1,12 @@
 # Milestone State
 
 Current milestone: M7
-Current sub-milestone: M7A
-Status: accepted_with_major_limitation
+Current sub-milestone: M7B
+Status: in_progress
+Next executable stage: M7B-S1
+M7C authorization: not authorized
+Authoritative M7B execution order: M7B-S0 clean, M7B-S1 dynamics only, M7B-S2 control delay only, M7B-S3 wind only, M7B-S4 combined
+M7B-S1 status: completed; stop before M7B-S2 pending audit/user confirmation
 Last completed milestone: M7A
 M4 accepted tag: m4-accepted
 M4 accepted commit: 36592b6a14cd1a00d6bb689b3a33d27fe610a3b1
@@ -16,10 +20,14 @@ M6 accepted commit: acc27beca2528db21fe1604118e448a87f7e298a
 M6 acceptance result: ACCEPT M6 WITH MAJOR LIMITATION
 M6 independent audit result: ACCEPT M6 WITH MAJOR LIMITATION
 M7A implementation commit: 348d0ba1782eedc61c692b5e0558dec04104abab
-M7A accepted tag: not created
+M7A accepted tag: m7a-accepted
 M7A acceptance result: ACCEPT M7A WITH MAJOR LIMITATION
 M7A independent audit result: ACCEPT M7A WITH MAJOR LIMITATION
-Next sub-milestone: M7B, not authorized
+M7B-G5 independent audit result: ACCEPT M7B-G5 WITH NON-BLOCKING ISSUES
+M7B-S0 checkpoint SHA-256: 7254b343972ab30a27c48dcb7fd5c5a90079ef6be25c067ec92cc0679f32e5f8
+M7B-S1 checkpoint SHA-256: 2e159913068a795eef6b48924267b453876f547d6113cffc3c69efaac61de3dc
+Primary M7B policy baseline: feedforward
+Secondary ablation: GRU
 
 ## M6 Acceptance Summary
 
@@ -44,7 +52,7 @@ Independent audit:
 docs/m6_independent_audit.md
 ```
 
-M7A has passed user acceptance with major limitation. M7B and M7C are not authorized.
+Historical pre-M7B note: at M7A acceptance time, M7B and M7C were not authorized. Current M7B status is governed by the M7B Authorization section below; M7C remains not authorized.
 
 ## M7A Authorization
 
@@ -118,7 +126,7 @@ Forbidden in M7A:
 - The original `Isaac-Uav-Rendezvous-Baseline-v0` task must remain the M4 deterministic baseline and must not be affected by RL actions.
 - The existing `Isaac-Uav-Rendezvous-RL-v0` task must remain the M5 feedforward PPO task and must not be converted into a recurrent task.
 - M7A starts from `m6-accepted` on local branch `feature/m7` after explicit user authorization.
-- M7B and M7C are not authorized.
+- Historical pre-M7B note: M7B was not authorized when this note was written; M7B is now authorized and in progress. M7C is not authorized.
 
 ## M5 Implementation Snapshot
 
@@ -212,14 +220,41 @@ logs/rsl_rl/uav_rendezvous_m6_feedforward_ablation/2026-07-23_00-11-43_m6_ff_abl
 
 M6 recurrent training and hidden-state management are functional, but a measurable implicit-prediction advantage over the fair feedforward baseline was not demonstrated.
 
-M6 is accepted with major limitation. M7A has since passed user acceptance with major limitation on `feature/m7`; M7B and M7C are not authorized.
+M6 is accepted with major limitation. M7A has since passed user acceptance with major limitation on `feature/m7`. Historical note: M7B was not authorized at that time; M7B is now authorized and in progress. M7C is not authorized.
 
 ## Next Milestone Guard
 
 - M5 has passed user acceptance.
 - M6 has passed user acceptance with major limitation.
 - M7A has passed user acceptance with major limitation.
-- Do not enter M7B or M7C without explicit user confirmation.
+- M7B is authorized and in progress.
+- Do not enter M7C without explicit user confirmation.
+
+## M7B Authorization
+
+Authorized M7B work:
+
+- Simplified ego dynamics randomization (tau_velocity_scale, acceleration_limit_scale, speed_limit_scale, linear_drag).
+- Control execution delay (per-env action FIFO, integer steps [0,3]).
+- Steady wind and piecewise gust equivalent acceleration.
+- Independent M7B feedforward and GRU tasks: `Isaac-Uav-Rendezvous-M7B-Feedforward-v0`, `Isaac-Uav-Rendezvous-M7B-GRU-v0`.
+- Feedforward is the primary M7B policy; GRU is secondary ablation only.
+- Clean M7A observation pipeline (delay=0, dropout=0, noise=0).
+- Authoritative stage order: M7B-S0 clean, M7B-S1 dynamics only, M7B-S2 control delay only, M7B-S3 wind only, M7B-S4 combined.
+- Actor: 25D deployable only; no dynamics parameters, delay, wind, or future information.
+- Critic: 65D with current-time privileged dynamics (tau_velocity_scale, acceleration_limit_scale, speed_limit_scale, linear_drag, normalized action_delay_steps, current wind_acceleration_w).
+- No future wind, future gust, or future target information in Critic.
+- Non-contact objective: collision risk not rewarded, d_safe not weakened.
+- M2 through M7A task behavior unchanged.
+
+Forbidden in M7B:
+
+- M7C visual estimation, image input, distance-dependent error, first-stage detection/recognition networks.
+- Crazyflie, Multirotor/Thruster, Pegasus, PX4, ROS 2, real-world deployment.
+- Combining observation degradation (M7A) with dynamics randomization.
+- Modifying accepted M2 through M7A task behavior.
+- Leaking dynamics parameters, wind truth, delay, mode_id, or future information to the Actor.
+- Entering M7C.
 
 ## M7A Acceptance Summary
 
@@ -245,3 +280,129 @@ Residual M7A issue:
 ```text
 scripts/audit_m7_pomdp_comparison.py exposed an Isaac same-process multi-environment lifecycle issue. Formal metrics were collected with scripts/evaluate.py instead.
 ```
+
+## M7B Progress
+
+### M7B-I1: pure PyTorch infrastructure
+
+- Created `uav_rendezvous_rl/dynamics/` package.
+- Implemented `stateless_rng.py`: counter-based deterministic sampling keyed by (env_id, episode_count, seed, stream, counter).
+- Implemented `action_delay.py`: per-environment push-then-read FIFO storing squashed actions.
+- Implemented `m7b.py`: formal dynamics integration with tracking clamp, total safety cap (4.0 m/s²), and analytic position formula.
+- Implemented `wind.py`: steady wind + piecewise gust with physics-substep low-pass filter.
+
+### M7B-I2: environment integration
+
+- Created `UavRendezvousM7BEnvCfg` with dynamics randomization fields.
+- Created `UavRendezvousM7BEnv` subclass with overridden `_pre_physics_step`, `_apply_action`, `_get_observations`, and `_reset_idx`.
+- Registered `Isaac-Uav-Rendezvous-M7B-Feedforward-v0` and `Isaac-Uav-Rendezvous-M7B-GRU-v0`.
+- Added `UavRendezvousM7BFeedforwardPPORunnerCfg` and `UavRendezvousM7BGRUPPORunnerCfg`.
+- Added `assemble_critic_observation_m7b` (65D) to `mdp/rendezvous.py` without modifying existing 57D function.
+
+### M7B-I3: training/play/evaluation contracts
+
+- Updated `train.py`: added `--m7b_stage`, `_configure_m7b_stage()`, and M7B-GRU 65D recurrent contract check.
+- Updated `evaluate.py`: added `--m7b_stage` and `_configure_m7b_stage()`.
+- Deprecated `scripts/audit_m7_pomdp_comparison.py`: exits with error message pointing to `evaluate.py`.
+
+### M7B-I4: tests
+
+- Added `tests/test_m7b_action_delay.py`: 5 pure unit tests.
+- Added `tests/test_m7b_dynamics_equation.py`: 5 pure unit tests.
+- Added `tests/test_m7b_task_registration.py`: 3 registration preservation tests.
+- Added `tests/test_m7b_critic_layout.py`: 2 layout tests.
+- Updated `tests/test_env_smoke.py` for M7B milestone and file checks.
+
+### M7B-G1: syntax and pure unit tests
+
+- `git diff --check` passed.
+- Isaac compileall passed for changed source, script, and test files.
+- Full pure pytest passed: `134 passed in 1.85s`.
+
+### M7B-G2: nominal dynamics equivalence
+
+- Unit tests passed for nominal dynamics equivalence, parameter sampling, and wind process: `12 passed`.
+- `test_m7b_one_step_nominal_is_same_as_m5_m7a` passes within `1e-6`.
+- Position formula verified as `p + v*dt + 0.5*a*dt^2`.
+
+### M7B-G3: environment and observation contracts
+
+- M7B feedforward S0 runtime audit passed.
+- M7B GRU S0 runtime audit passed on retry after an Isaac startup segfault occurred before project environment initialization.
+- Runtime contracts verified Actor observation `25D`, Critic observation `65D`, action dimension `3`, clean S0 observation pipeline, and recurrent GRU `65D` critic contract for the secondary ablation task.
+- Isaac startup-stage segfault note: the first M7B GRU S0 runtime-audit attempt exited during Isaac startup before project environment initialization; the retry passed. This was treated as infrastructure-level and did not modify Isaac Lab, Isaac Sim, system packages, or the driver.
+
+### M7B-G4: runtime and regression audits
+
+- M7B-S4 combined 10000-step runtime audit passed.
+- Compact M2, M3, M4, M5, and M6 regression audits passed.
+- Compact M7A GRU observation-pipeline regression passed on retry after an Isaac startup segfault occurred before project environment initialization.
+- Exact M7A compact GRU retry command that passed:
+
+```bash
+env -u CONDA_PREFIX -u CONDA_DEFAULT_ENV -u VIRTUAL_ENV -u PYTHONPATH -u PYTHONHOME /home/lab_726/IsaacLab/isaaclab.sh -p scripts/audit_m7_observation_pipeline.py --task Isaac-Uav-Rendezvous-M7A-GRU-v0 --m7a_stage 4 --num_envs 4 --steps 8 --seed 43 --device cuda:0 --headless
+```
+
+- M7A compact GRU retry result: passed with `policy_obs_dim=25`, `critic_obs_dim=57`, finite check `true`, no-future-leakage check present, hidden reset check present, partial reset check present, and `done_count=0` over 8 audit steps.
+- Isaac startup-stage segfault note: the previous M7A compact GRU attempt with seed `42` exited during Isaac startup before the project audit report was produced; the seed `43` retry above passed.
+
+### M7B-G5: clean startup and Stage 0 validation
+
+- M7B-S0 feedforward PPO training completed with the approved startup/formal clean budget: `256` envs, `300` iterations, seed `42`.
+- Final local checkpoint, not tracked by Git:
+
+```text
+logs/rsl_rl/uav_rendezvous_m7b_feedforward/2026-07-26_01-30-42_m7b_s0_ff_300_seed42/model_299.pt
+```
+
+- M7B-S0 checkpoint SHA-256: `7254b343972ab30a27c48dcb7fd5c5a90079ef6be25c067ec92cc0679f32e5f8`.
+
+- Balanced clean validation passed on validation split, seed `4242`, `64` envs, `8` episodes/env, `512` total episodes, exactly `128` episodes per target mode.
+- Clean validation metrics: `success_rate=1.0`, `collision_risk_rate=0.0`, `workspace_violation_rate=0.0`, `height_violation_rate=0.0`, `speed_violation_rate=0.0`, successful offset p95 `0.3143340051 m`, successful relative-speed p95 `0.1617015600 m/s`, deterministic inference `max_abs_delta=0.0`.
+- M7B-S0 diagnostics verified nominal dynamics and clean observation pipeline: tau/accel/speed scales `1.0`, drag `0.0`, delay `0`, wind/gust `0`, Actor observation `25D`, Critic observation `65D`, finite state `true`.
+
+Full verification details are recorded in `docs/m7b_verification.md`.
+
+Independent G5 audit result:
+
+```text
+docs/m7b_g5_independent_audit.md: ACCEPT M7B-G5 WITH NON-BLOCKING ISSUES
+```
+
+### M7B-S1 locked execution protocol
+
+- Current executable stage: M7B-S1 dynamics only.
+- Task: `Isaac-Uav-Rendezvous-M7B-Feedforward-v0`.
+- Policy: feedforward PPO only; no GRU training in this run.
+- Training source: from scratch; do not resume the M7B-S0 checkpoint.
+- Stage flag: `--m7b_stage 1`.
+- Observation degradation: clean M7A pipeline only, with delay `0`, dropout `0`, noise `0`, and policy-frequency position/velocity updates.
+- Enabled disturbance: dynamics randomization only (`tau_velocity_scale`, `acceleration_limit_scale`, `speed_limit_scale`, `linear_drag`).
+- Disabled disturbances: action delay must remain `0`; steady wind and gust must remain `0`.
+- Observation dimensions: Actor `25D`, Critic `65D`.
+- Training budget: `256` envs, `300` iterations, seed `42`.
+- Validation protocol: validation split, seed `4242`, `64` envs, `8` episodes/env, `512` total episodes, exactly `128` episodes per target mode, deterministic inference check enabled.
+- Pre-registered S1 gates: collision risk rate `0`; workspace violation rate `0`; height violation rate `0`; speed violation rate `0`; finite diagnostics `true`; deterministic `max_abs_delta=0`; overall success rate at least `0.95`; each target-mode success rate at least `0.90`; successful offset p95 at most `0.50 m`; successful relative-speed p95 at most `0.30 m/s`.
+
+No commits, no pushes, no M7C entry. M7B-S2 through M7B-S4 formal robustness training and validation are not started.
+
+### M7B-S1: dynamics-only training and validation
+
+- Preflight passed: `git diff --check`, Isaac compileall, and targeted M7B tests (`41 passed in 0.92s`).
+- Short S1 startup audit passed with Actor `25D`, Critic `65D`, finite diagnostics, dynamics randomization active, action delay `0`, and wind/gust `0`.
+- M7B-S1 10000-step runtime audit passed on exact-command retry after an Isaac startup-stage segfault with `appState='startup'` and `UptimeSeconds='0'`; the failed attempt occurred before project environment initialization.
+- Validation-split stage-isolation check confirmed S1 dynamics randomization on validation split with action delay `0` and wind/gust `0` before formal checkpoint validation.
+- S1 feedforward PPO trained from scratch with `256` envs, `300` iterations, seed `42`; no resume flag and no S0 checkpoint load.
+- Final local checkpoint, not tracked by Git:
+
+```text
+logs/rsl_rl/uav_rendezvous_m7b_feedforward/2026-07-26_20-57-39_m7b_s1_ff_300_seed42/model_299.pt
+```
+
+- Final checkpoint SHA-256: `2e159913068a795eef6b48924267b453876f547d6113cffc3c69efaac61de3dc`.
+- Formal validation passed on validation split, seed `4242`, `64` envs, `8` episodes/env, `512` total episodes, exactly `128` episodes per target mode.
+- Overall validation metrics: `success_rate=1.0`, `collision_risk_rate=0.0`, `workspace_violation_rate=0.0`, `height_violation_rate=0.0`, `speed_violation_rate=0.0`, successful offset p95 `0.3154950439929962 m`, successful relative-speed p95 `0.16483217477798462 m/s`, deterministic inference `max_abs_delta=0.0`.
+- Per-mode success rates: ConstantAcceleration `1.0`, ConstantTurn `1.0`, ConstantVelocity `1.0`, PiecewiseAcceleration `1.0`.
+- Stage-isolation diagnostics from formal validation: tau min/max `0.7646484375/1.44140625`, acceleration min/max `0.80859375/1.1996093988`, speed min/max `0.9001953006/1.0997558832`, drag min/max `0.0002288819/0.1494140625`, action delay min/max `0/0`, steady/current wind max `0.0/0.0`, gust target/current max `0.0/0.0`, Actor `25D`, Critic `65D`, finite diagnostics `true`.
+- All pre-registered S1 gates passed.
+- Stop state: do not execute M7B-S2, M7B-S3, M7B-S4, GRU training, M7C, commit, tag, or push without explicit user confirmation.

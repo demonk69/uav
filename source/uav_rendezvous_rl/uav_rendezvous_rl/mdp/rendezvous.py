@@ -289,6 +289,49 @@ def assemble_critic_observation(
     )
 
 
+def assemble_critic_observation_m7b(
+    actor_obs: torch.Tensor,
+    p_ego_w: torch.Tensor,
+    p_target_w: torch.Tensor,
+    v_target_w: torch.Tensor,
+    a_target_w: torch.Tensor,
+    r_target_6d: torch.Tensor,
+    omega_target_b: torch.Tensor,
+    mode_one_hot: torch.Tensor,
+    target_motion_current_params: torch.Tensor,
+    episode_phase: torch.Tensor,
+    tau_velocity_scale: torch.Tensor,
+    acceleration_limit_scale: torch.Tensor,
+    speed_limit_scale: torch.Tensor,
+    linear_drag: torch.Tensor,
+    normalized_action_delay_steps: torch.Tensor,
+    current_wind_acceleration_w: torch.Tensor,
+) -> torch.Tensor:
+    """Assemble the fixed 65D M7B privileged Critic observation."""
+
+    return torch.cat(
+        (
+            actor_obs,
+            p_ego_w,
+            p_target_w,
+            v_target_w,
+            a_target_w,
+            r_target_6d,
+            omega_target_b,
+            mode_one_hot.to(dtype=torch.float32),
+            target_motion_current_params,
+            episode_phase.reshape(-1, 1).to(dtype=torch.float32),
+            tau_velocity_scale.reshape(-1, 1).to(dtype=torch.float32),
+            acceleration_limit_scale.reshape(-1, 1).to(dtype=torch.float32),
+            speed_limit_scale.reshape(-1, 1).to(dtype=torch.float32),
+            linear_drag.reshape(-1, 1).to(dtype=torch.float32),
+            normalized_action_delay_steps.reshape(-1, 1).to(dtype=torch.float32),
+            current_wind_acceleration_w.to(dtype=torch.float32),
+        ),
+        dim=-1,
+    )
+
+
 def compute_reward_terms(
     offset_error_w: torch.Tensor,
     previous_offset_error_norm: torch.Tensor,
